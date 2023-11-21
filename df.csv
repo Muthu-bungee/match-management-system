@@ -1,0 +1,11 @@
+,Unnamed: 0.2,Unnamed: 0.1,Unnamed: 0,pair_id,uuid_a,uuid_b,score,product_Segment,seller_flag,BUNGEE_AUDIT_STATUS,source_type
+0,0,5,5,957190<>chewy<>chewy-b09mq5v2v8<>amazon<>amazon,957190<>chewy<>chewy,b09mq5v2v8<>amazon<>amazon,0.0920594571159668,pets,3P,EXACT_MATCH,"['ML', 'UPC']"
+1,1,6,6,959870<>chewy<>chewy-b0bpstdjjj<>amazon<>amazon,959870<>chewy<>chewy,b0bpstdjjj<>amazon<>amazon,0.6518926087669425,pets,3P,EXACT_MATCH,"['ML', 'UPC']"
+2,2,7,7,959782<>chewy<>chewy-b0brp8dsy1<>amazon<>amazon,959782<>chewy<>chewy,b0brp8dsy1<>amazon<>amazon,0.0420110904187968,pets,3P,EXACT_MATCH,"['ML', 'UPC']"
+3,3,8,8,958102<>chewy<>chewy-b09wn7mvlp<>amazon<>amazon,958102<>chewy<>chewy,b09wn7mvlp<>amazon<>amazon,0.0373683040175014,pets,3P,EXACT_MATCH,"['ML', 'UPC']"
+4,4,9,9,958702<>chewy<>chewy-b0bz9hgknf<>amazon<>amazon,958702<>chewy<>chewy,b0bz9hgknf<>amazon<>amazon,0.4270153232642429,pets,3P,EXACT_MATCH,"['ML', 'UPC']"
+5,5,0,0,963846<>chewy<>chewy-b0bzyyqbj2<>amazon<>amazon,963846<>chewy<>chewy,b0bzyyqbj2<>amazon<>amazon,1.82514015614106,pets,1P,EXACT_MATCH,"['ML', 'UPC']"
+6,6,1,1,958478<>chewy<>chewy-b0c8z2vx6h<>amazon<>amazon,958478<>chewy<>chewy,b0c8z2vx6h<>amazon<>amazon,1.914265824217788,pets,1P,EXACT_MATCH,"['ML', 'UPC']"
+7,7,2,2,956854<>chewy<>chewy-b0ch1ls52w<>amazon<>amazon,956854<>chewy<>chewy,b0ch1ls52w<>amazon<>amazon,1.3246933554554112,pets,1P,EXACT_MATCH,"['ML', 'UPC']"
+8,8,3,3,963702<>chewy<>chewy-b0bh32zck8<>amazon<>amazon,963702<>chewy<>chewy,b0bh32zck8<>amazon<>amazon,1.7622347334267894,pets,1P,EXACT_MATCH,"['ML', 'UPC']"
+9,9,4,4,956998<>chewy<>chewy-b0cbh8x5v3<>amazon<>amazon,956998<>chewy<>chewy,b0cbh8x5v3<>amazon<>amazon,1.7334386326250404,pets,1P,EXACT_MATCH,"['ML', 'UPC']"

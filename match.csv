@@ -1,0 +1,11 @@
+,pair_id,uuid_a,uuid_b,score,source_type,product_Segment,seller_flag,BUNGEE_AUDIT_STATUS
+0,963846<>chewy<>chewy-b0bzyyqbj2<>amazon<>amazon,963846<>chewy<>chewy,b0bzyyqbj2<>amazon<>amazon,0.8251401561410593,ML,pets,1P,EXACT_MATCH
+1,958478<>chewy<>chewy-b0c8z2vx6h<>amazon<>amazon,958478<>chewy<>chewy,b0c8z2vx6h<>amazon<>amazon,0.9142658242177877,ML,pets,1P,EXACT_MATCH
+2,956854<>chewy<>chewy-b0ch1ls52w<>amazon<>amazon,956854<>chewy<>chewy,b0ch1ls52w<>amazon<>amazon,0.32469335545541134,ML,pets,1P,EXACT_MATCH
+3,963702<>chewy<>chewy-b0bh32zck8<>amazon<>amazon,963702<>chewy<>chewy,b0bh32zck8<>amazon<>amazon,0.7622347334267893,ML,pets,1P,EXACT_MATCH
+4,956998<>chewy<>chewy-b0cbh8x5v3<>amazon<>amazon,956998<>chewy<>chewy,b0cbh8x5v3<>amazon<>amazon,0.7334386326250404,ML,pets,1P,EXACT_MATCH
+5,957190<>chewy<>chewy-b09mq5v2v8<>amazon<>amazon,957190<>chewy<>chewy,b09mq5v2v8<>amazon<>amazon,0.09205945711596686,ML,pets,3P,EXACT_MATCH
+6,959870<>chewy<>chewy-b0bpstdjjj<>amazon<>amazon,959870<>chewy<>chewy,b0bpstdjjj<>amazon<>amazon,0.6518926087669425,ML,pets,3P,EXACT_MATCH
+7,959782<>chewy<>chewy-b0brp8dsy1<>amazon<>amazon,959782<>chewy<>chewy,b0brp8dsy1<>amazon<>amazon,0.042011090418796804,ML,pets,3P,EXACT_MATCH
+8,958102<>chewy<>chewy-b09wn7mvlp<>amazon<>amazon,958102<>chewy<>chewy,b09wn7mvlp<>amazon<>amazon,0.037368304017501464,ML,pets,3P,EXACT_MATCH
+9,958702<>chewy<>chewy-b0bz9hgknf<>amazon<>amazon,958702<>chewy<>chewy,b0bz9hgknf<>amazon<>amazon,0.42701532326424296,ML,pets,3P,EXACT_MATCH
