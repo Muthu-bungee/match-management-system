@@ -25,9 +25,9 @@ class MatchGenerator:
         reader=DataReader(self.glue_context)
 
         config={}
-        config['seller_type']='1P'
-        config['match_type']='EXACT_MATCH'
-        config['cardinality']='1'
+        config['cardinality']='1' # option available are 1, n
+        config['match_type']='EXACT_MATCH' # option available are EXACT, SIMILAR, EXACT_OR_SIMILAR, EXACT_OVER_SIMILAR
+        config['seller_type']='1P' # option available are 1p, 3p, 1p_or_3p, 1p_over_3p
         
         delta_match_df=reader.getDeltaMatches()
         #delta_match_df.show()

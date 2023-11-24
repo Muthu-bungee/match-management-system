@@ -1,4 +1,6 @@
 from pyspark.sql.functions import *
+from pyspark.sql.window import *
+from pyspark.sql import DataFrame
 
 class Pruner:
     def __init__(self,config):
@@ -11,6 +13,32 @@ class Pruner:
    
     def getMatch(self, match_df,pair_id):  
         return match_df[match_df['pair_id']==pair_id]
+    
+    def filter_based_on_seller_type(self, seller_type: str, match_suggestion: DataFrame, match_data_warehouse: DataFrame):
+        match_data_warehouse_pair_id = match_data_warehouse.filter( col('') == '' & col('') == '').select('pair_id')
+        old_pair_id = match_data_warehouse_pair_id.join(match_suggestion.select('pair_id'), 'pair_id', 'inner')
+        
+        old_matches_from_match_suggestions = match_suggestion.join(old_pair_id, 'pair_id', 'inner')
+        old_matches_from_match_data_warehouse = match_data_warehouse.join(old_pair_id, 'pair_id', 'inner')
+        
+        window_spec = Window.partitionBy("pair_id").orderBy("seller_type")
+        df_with_row_number = old_matches_from_match_suggestions.withColumn("row_num", row_number().over(window_spec))
+        result_df = df_with_row_number.filter(col("row_num") == 1).drop("row_num")
+         
+        seller_type = seller_type.lower()
+        if seller_type == '1P':
+            old_matches_from_match_suggestions.filter( col("seller_type") == "3p" )
+            pass
+        elif seller_type == '3P':
+            old_matches_from_match_suggestions.filter( col("seller_type") == "1p" )
+            pass
+        elif seller_type == '1p_or_3P':
+            pass
+        elif seller_type == '1p_over_3p':
+            window_spec = Window.partitionBy("pair_id").orderBy("seller_type")
+            df_with_row_number = old_matches_from_match_suggestions.withColumn("row_num", row_number().over(window_spec))
+            result_df = df_with_row_number.filter(col("row_num") == 1).drop("row_number")
+        
 
     '''def hasTypeMatch(self, match,match_type):
         filtered_match =match.filter(col('BUNGEE_AUDIT_STATUS') == 'EXACT_MATCH')
@@ -44,6 +72,9 @@ class Pruner:
   
     
         
-    
+# INPUT
+#   what we have aggregated in previous step (list of all match suggestion present with us)
+#   complete match data warehouse (list of all match suggestion present in mdw)
 
+# PROCESSING
    
