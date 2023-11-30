@@ -1,0 +1,249 @@
+
+audited_base_product_unaudited_matches = audited_base_product_unaudited_matches.join(exact_matches, "base_sku_uuid", "left")
+pruned_matches = audited_base_product_unaudited_matches.filter( (col("audited_match_comp_seller_type").contains("1p")) & ( col('comp_seller_type') == '1p' ) )
+match_suggestion = audited_base_product_unaudited_matches.filter( ~((col("audited_match_comp_seller_type").contains("1p")) & ( col('comp_seller_type') == '1p' )) ) audited_match_comp_seller_type = 3p , comp_seller_type = 3p
+
+audited_match_comp_seller_type  col("audited_match_comp_seller_type").contains("1p")  comp_seller_type    col('comp_seller_type') == '1p' ~(A & B)  Pruned
+1p                                  True                                                1p                      True                        False   Yes
+1p                                  True                                                3p                      False                       True    No
+1p_3p                               True                                                1p                      True                        False   Yes
+1p_3p                               True                                                3p                      False                       True    No
+3p                                  False                                               1p                      True                        True    No
+3p                                  False                                               1p                      False                       True    No
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+EXACT_MATCH
+we have 1p exact match for a product and we are getting 1p suggestion for the same product => its not possible for that suggestion to be an exact match so can be pruned
+    1p_or_3p
+        c=1 => prune suggestion
+        c=n => prune suggestion
+    1p_over_3p
+        c=1 => prune suggestion
+        c=n => prune suggestion
+
+we have 1p exact match for a product and we are getting 3p suggestion for the same product => its possible for that suggestion to be an exact match 
+    1p_or_3p
+        c=1 => prune suggestion (its possible for that 3p suggestion to be an exact match but we already found one so can be pruned)
+        c=n => match suggestion (its possible for that 3p suggestion to be an exact match and we want more suggestions)
+    1p_over_3p
+        c=1 => prune suggestion (its possible for that 3p suggestion to be an exact match but we already found 1p exact match so can be pruned)
+        c=n => match suggestion (its possible for that 3p suggestion to be an exact match and we want more suggestion)
+
+
+NOTE: above conclude that 1p and 1p_3p are same 
+
+we have 3p exact match for a product and we are getting 1p suggestion for the same product => 
+    1p_or_3p
+        c=1 => prune suggestion (its possible for that 1p suggestion to be an exact match but we already found one so can be pruned)
+        c=n => match suggestion (its possible for that 1p suggestion to be an exact match and we want more suggestion)
+    1p_over_3p
+        c=1 => match suggestion (its possible for that 1p suggestion to be an exact match and we want 1p match)
+        c=n => match suggestion (its possible for that 1p suggestion to be an exact match and we want 1p match)
+
+we have 3p exact match for a product and we are getting 3p suggestion for the same product => 
+    1p_or_3p
+        c=1 => prune suggestion (its possible for that 3p suggestion to be an exact match but we already found one so can be pruned)
+        c=n => match suggestion (its possible for that 3p suggestion to be an exact match and we want more suggestions)
+    1p_over_3p
+        c=1 => prune suggestion (its possible for that 3p suggestion to be an exact match but we already found one so can be pruned)
+        c=n => match suggestion (its possible for that 3p suggestion to be an exact match and we want more suggestions)
+
+
+
+audited_base_product_unaudited_matches = audited_base_product_unaudited_matches.join(exact_matches, "base_sku_uuid", "left")
+1p_or_3p
+    c=1 
+        prune_suggestion = audited_base_product_unaudited_matches
+        match_suggestion = None
+    c=n
+        prune_suggestion = audited_base_product_unaudited_matches.filter( (col("audited_match_comp_seller_type") == "1p") & ( col('comp_seller_type') == '1p' ) )
+        match_suggestion = audited_base_product_unaudited_matches.filter( ~((col("audited_match_comp_seller_type") == "1p") & ( col('comp_seller_type') == '1p' )) )
+1p_over_3p
+    c=1
+        prune_suggestion = audited_base_product_unaudited_matches.filter( ~((col("audited_match_comp_seller_type") == "3p") & ( col('comp_seller_type') == '1p' )) )
+        match_suggestion = audited_base_product_unaudited_matches.filter( (col("audited_match_comp_seller_type") == "3p") & ( col('comp_seller_type') == '1p' ) )
+    c=n
+        prune_suggestion = audited_base_product_unaudited_matches.filter( (col("audited_match_comp_seller_type") == "1p") & ( col('comp_seller_type') == '1p' ) )
+        match_suggestion = audited_base_product_unaudited_matches.filter( ~((col("audited_match_comp_seller_type") == "1p") & ( col('comp_seller_type') == '1p' )) )
+
+
+
+we have 1p and 3p exact match for a product and we are getting 1p suggestion for the same product => its not possible for that suggestion to be an exact match so can be pruned
+    1p_or_3p
+        c=1 => prune suggestion
+        c=n => prune suggestion
+    1p_over_3p
+        c=1 => prune suggestion
+        c=n => prune suggestion
+
+we have 1p and 3p exact match for a product and we are getting 3p suggestion for the same product => 
+    1p_or_3p
+        c=1 => prune suggestion (its possible for that 3p suggestion to be an exact match but we already found one so can be pruned)
+        c=n => match suggestion (its possible for that 3p suggestion to be an exact match and we want more suggestions)
+    1p_over_3p
+        c=1 => prune suggestion (its possible for that 3p suggestion to be an exact match but we already found 1p exact match so can be pruned)
+        c=n => match suggestion (its possible for that 3p suggestion to be an exact match and we want more suggestion)
+
+
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+EXACT OR SIMILAR
+
+MATCH_TYPE      audited_match_comp_seller_type   comp_seller_type    
+SIMILAR         1p                                      1p    
+Exact           1p                                      1p                     
+SIMILAR         1p                                      3p                      
+exact           1p                                      3p                      
+similar         3p                                      1p              
+exact           3p                                      1p
+similar         3p                                      3p              
+exact           3p                                      3p
+
+
+we have SIMILAR, 1p  and got 1p 
+    1p
+        c=1 => match suggestion (its possible for the 1p suggestion to be an exact match)
+        c=n => match suggestion (its possible for the 1p suggestion to be an exact/similar match)
+                3p
+                    c=1 => prune suggestion (only 1p suggestion needed so prune)
+                    c=n => prune suggestion (only 1p suggestion needed so prune)
+    1p_or_3p
+        c=1 => match suggestion (its possible for the 1p suggestion to be an exact match)
+        c=n => match suggestion (its possible for the 1p suggestion to be an exact/similar match)
+    1p_over_3p
+        c=1 => match suggestion (its possible for the 1p suggestion to be an exact match)
+        c=n => match suggestion (its possible for the 1p suggestion to be an exact/similar match)
+
+we have EXACT, 1p  and got 1p 
+    1p
+        c=1 => prune suggestion (its not possible for that suggestion to be an exact match so can be pruned)
+        c=n => match suggestion (its possible for the 1p suggestion to be a similar match)
+                3p
+                    c=1 => prune suggestion (only 1p suggestion needed so prune)
+                    c=n => prune suggestion (only 1p suggestion needed so prune)
+    1p_or_3p
+        c=1 => prune suggestion (its not possible for the 1p suggestion to be an exact match)
+        c=n => match suggestion (its possible for the 1p suggestion to be an exact/similar match)
+    1p_over_3p
+        c=1 => prune suggestion (its not possible for that suggestion to be an exact match so can be pruned)
+        c=n => match suggestion (its possible for the 1p suggestion to be an exact/similar match)
+
+we have SIMILAR, 1p  and got 3p 
+                1p
+                    c=1 => prune suggestion (only 1p suggestion needed so prune)
+                    c=n => prune suggestion (only 1p suggestion needed so prune)
+    3p
+        c=1 => match suggestion (its possible for the 3p suggestion to be an exact match)
+        c=n => match suggestion (its possible for the 3p suggestion to be an exact/similar match)
+    1p_or_3p
+        c=1 => match suggestion (its possible for the 3p suggestion to be an exact match)
+        c=n => match suggestion (its possible for the 3p suggestion to be an exact/similar match)
+    1p_over_3p
+        c=1 => match suggestion (its possible for the 3p suggestion to be an exact match)
+        c=n => match suggestion (its possible for the 3p suggestion to be an exact/similar match)
+
+we have EXACT, 1p  and got 3p 
+                1p
+                    c=1 => prune suggestion (only 1p suggestion needed so prune)
+                    c=n => prune suggestion (only 1p suggestion needed so prune)
+    3p
+        c=1 => prune suggestion (its possible for the 3p suggestion to be an exact match but we already have 1)
+        c=n => match suggestion (its possible for the 3p suggestion to be an exact/similar match)
+    1p_or_3p
+        c=1 => prune suggestion (its possible for the 3p suggestion to be an exact/sim match)
+        c=n => match suggestion (its possible for the 1p suggestion to be an exact/similar match)
+    1p_over_3p
+        c=1 => prune suggestion (its not possible for that suggestion to be an exact match so can be pruned)
+        c=n => match suggestion (its possible for the 1p suggestion to be an exact/similar match)
+
+
+NOTE: 1P ana 1p-3P are same
+
+we have SIMILAR, 3p  and got 1p 
+    1p
+        c=1 => match suggestion (its possible for the 1p suggestion to be an exact match)
+        c=n => match suggestion (its possible for the 1p suggestion to be an exact/similar match)
+                3p
+                    c=1 => prune suggestion (only 3p suggestion needed so prune)
+                    c=n => prune suggestion (only 3p suggestion needed so prune)
+    1p_or_3p
+        c=1 => match suggestion (its possible for the 1p suggestion to be an exact match)
+        c=n => match suggestion (its possible for the 1p suggestion to be an exact/similar match)
+    1p_over_3p
+        c=1 => match suggestion (its possible for the 1p suggestion to be an exact match)
+        c=n => match suggestion (its possible for the 1p suggestion to be an exact/similar match)
+
+we have EXACT, 3p  and got 1p 
+    1p
+        c=1 => match suggestion (its possible for the 1p suggestion to be an exact match)
+        c=n => match suggestion (its possible for the 1p suggestion to be a exact/similar match)
+                3p
+                    c=1 => prune suggestion (only 3p suggestion needed so prune)
+                    c=n => prune suggestion (only 3p suggestion needed so prune)
+    1p_or_3p
+        c=1 => prune suggestion (its possible for the 3p suggestion to be an exact match but we already have 1)
+        c=n => match suggestion (its possible for the 1p suggestion to be an exact/similar match)
+    1p_over_3p
+        c=1 => match suggestion (its possible for the 1p suggestion to be an exact match)
+        c=n => match suggestion (its possible for the 1p suggestion to be an exact/similar match)
+
+we have SIMILAR, 3p  and got 3p 
+                1p
+                    c=1 => prune suggestion (only 1p suggestion needed so prune)
+                    c=n => prune suggestion (only 1p suggestion needed so prune)
+    3p
+        c=1 => match suggestion (its possible for the 3p suggestion to be an exact match)
+        c=n => match suggestion (its possible for the 3p suggestion to be an exact/similar match)
+    1p_or_3p
+        c=1 => match suggestion (its possible for the 3p suggestion to be an exact match)
+        c=n => match suggestion (its possible for the 3p suggestion to be an exact/similar match)
+    1p_over_3p
+        c=1 => match suggestion (its possible for the 3p suggestion to be an exact match)
+        c=n => match suggestion (its possible for the 3p suggestion to be an exact/similar match)
+
+we have EXACT, 3p  and got 3p 
+                1p
+                    c=1 => prune suggestion (only 1p suggestion needed so prune)
+                    c=n => prune suggestion (only 1p suggestion needed so prune)
+    3p
+        c=1 => prune suggestion (its possible for the 3p suggestion to be an exact match but we already have 1)
+        c=n => match suggestion (its possible for the 3p suggestion to be an exact/similar match)
+    1p_or_3p
+        c=1 => prune suggestion (its possible for the 3p suggestion to be an exact/sim match but we already have one so prune)
+        c=n => match suggestion (its possible for the 3p suggestion to be an exact/similar match)
+    1p_over_3p
+        c=1 => prune suggestion (its possible for that suggestion to be an exact match but we already have one)
+        c=n => match suggestion (its possible for the 3p suggestion to be an exact/similar match)
+
+
+sim/sim_or_exact
+
+1p
+    c=1 = 
+        prune_suggestion = audited_base_product_unaudited_matches.filter( (col("match_type") == 'exact') & (col('comp_seller_type')=='1p'))
+        match_suggestion = audited_base_product_unaudited_matches.filter( ~( (col("match_type") == 'exact') & (col('comp_seller_type')=='1p')) )
+    c=n =>
+        pruned_suggestion = None
+        match_suggestion = audited_base_product_unaudited_matches
+3p
+    c=1 = 
+        prune_suggestion = audited_base_product_unaudited_matches.filter( col("match_type") == 'exact' )
+        match_suggestion = audited_base_product_unaudited_matches.filter( ~( col("match_type") == 'exact' ) )
+    c=n =>
+        pruned_suggestion = None
+        match_suggestion = audited_base_product_unaudited_matches
+
+1p_or_3p
+    c=1 = 
+        prune_suggestion = audited_base_product_unaudited_matches.filter( col("match_type") == 'exact' )
+        match_suggestion = audited_base_product_unaudited_matches.filter( ~( col("match_type") == 'exact' ) )
+    c=n =>
+        pruned_suggestion = None
+        match_suggestion = audited_base_product_unaudited_matches
+
+
+sim/sim_or_exact
+
+1p
+    c=1 = 
+        prune_suggestion = audited_base_product_unaudited_matches.filter( (col("match_type") == 'exact') & (col('comp_seller_type')=='1p'))
