@@ -1,5 +1,8 @@
 from pyspark.sql.functions import *
 from pyspark.sql.types import ArrayType
+from pyspark.sql import DataFrame
+import bungee_utils.spark_utils.function.dataframe_util as utils
+
 # class Aggregator:
 #     def __init__(self,glue_context) -> None:
 #         self.glue_context=glue_context
@@ -40,17 +43,62 @@ from pyspark.sql.types import ArrayType
     
 
 class Aggregator:
-    def __init__(self, glue_context, ml_match_suggestion, upc_match_suggestion, mpn_match_suggestion, transitive_match_suggestion, mdw) -> None:
+    def __init__(self, glue_context: DataFrame, ml_match_suggestion: DataFrame, upc_match_suggestion: DataFrame, mpn_match_suggestion: DataFrame, transitive_match_suggestion: DataFrame, mdw: DataFrame) -> None:
         self.ml_match_suggestion = ml_match_suggestion
         self.upc_match_suggestion = upc_match_suggestion
         self.mpn_match_suggestion = mpn_match_suggestion
         self.transitive_match_suggestion = transitive_match_suggestion
+        
+        match_suggestion_list = [ml_match_suggestion, upc_match_suggestion, mpn_match_suggestion, transitive_match_suggestion]
+        match_suggestion_list = [item for item in match_suggestion_list if item is not None]
+        merged_match_suggestion = utils.combine_dfs(match_suggestion_list)
+        self.merged_match_suggestion = utils.add_prefix_to_column_name(merged_match_suggestion, "new_", cols_to_rename)
+        
+        cols_to_rename = []
         self.mdw = mdw
+        if mdw is not None:
+            self.prefixed_mdw = utils.add_prefix_to_column_name(mdw, "old_", cols_to_rename)
+        
         self.glue_context = glue_context
-
-    def aggregate_match():
+        
+    def aggregate_match(self, mdw: DataFrame, match_suggestion: DataFrame):
+        # cols = set(mdw.columns).difference(set(["source_score_map"]))
+        mdw = mdw.select( "*", explode(col("source_score_map"))).drop("source_score_map")
+        
+        mdw.cache()
+        self.merged_match_suggestion.cache()
+        diff_column = col("old_score") - col("new_score")
+        
+        if self.mdw is not None:
+            merged_matches = self.merged_match_suggestion.join(self.prefixed_mdw, ["pair_id", "match_source"], "full_outer")
+        else:
+            merged_matches = self.merged_match_suggestion.withColumn("old_score", lit(None))
+            
+        merged_matches = merged_matches.withColumn( "updated_score", 
+                                                    when( col("old_score").isNull(), col("new_score") )\
+                                                    .when( col("new_score").isNull(), col("old_score") )\
+                                                    .when( (diff_column.between(-0.05, 0.05)) , col("old_score") )\
+                                                    .otherwise( col("new_score") ) 
+                                                )
+        merged_matches = merged_matches.withColumn("match_status", when(col("old_score").isNull(), lit("updated"))\
+                                                                    .when( col("old_score").isNotNull() & (col("old_score") != col("updated_score") ), lit("updated") )\
+                                                                    .otherwise( lit("not_updated") ) 
+                                                    )
+        
+        merged_matches = merged_matches.withColumnRenamed("updated_score", "score")
+        
+        merged_matches = merged_matches.groupBy("pair_id", "base_sku_uuid", "comp_sku_uuid", "base_source_store", "comp_source_store").\
+                                        agg( map_from_entries( collect_list( struct("match_source","score"))).alias("source_score_map"), 
+                                            collect_set("match_status").alias("match_status") , sum(col("score")).alias("aggregated_score") )
+                                        
+                                        
+        updated_matches = merged_matches.filter(array_contains(col("match_status"), "updated"))
+        
+        updated_matches = updated_matches.withColumn("status", lit("unaudited"))
         
         
+        # we need to remove audited matches but should we update the score as well
+        # 
         
     # def aggregate(self,delta_match_df,existing_match_df):
     #     existing_match_df.cache()
@@ -84,3 +132,18 @@ class Aggregator:
     #     full_df.show()
     #     full_df.write.format("parquet").mode("overwrite").save('s3://mdp-ut.east1/aggregated/',header = 'true')
     #     return full_df
+
+
+# ----- exploded to map
+# import pyspark.sql.functions as F
+
+# df1 = df.groupby("id", "cat").count()
+# df2 = df1.groupby("id")\
+#          .agg(F.map_from_entries(F.collect_list(F.struct("cat","count"))).alias("cat"))
+
+
+# ------ map to exploded
+# df.select(df.name,explode(df.properties)).show()
+
+#  union dont drop duplicates
+
