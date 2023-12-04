@@ -1,8 +1,41 @@
 from pyspark.sql.functions import *
-from pyspark.sql.types import ArrayType
+from pyspark.sql.types import *
 from pyspark.sql import DataFrame
 import bungee_utils.spark_utils.function.dataframe_util as utils
 
+
+schema = StructType([
+    StructField("match_id", StringType(), True),
+    StructField("text_segment", StringType(), True),
+    StructField("base_source_store", StringType(), True),
+    StructField("comp_source_store", StringType(), True),
+    StructField("match_source", StringType(), True),
+    StructField("score", DoubleType(), True),
+    StructField("bungee_audit_status", StringType(), True),
+    StructField("bungee_auditor", StringType(), True),
+    StructField("bungee_audit_date", TimestampType(), True),
+    StructField("bungee_auditor_comment", StringType(), True),
+    StructField("seller_type", StringType(), True),
+    StructField("client_audit_status_l1", StringType(), True),
+    StructField("client_auditor_l1", StringType(), True),
+    StructField("client_audit_date_l1", TimestampType(), True),
+    StructField("client_auditor_l1_comment", StringType(), True),
+    StructField("client_audit_status_l2", StringType(), True),
+    StructField("client_auditor_l2", StringType(), True),
+    StructField("client_audit_date_l2", TimestampType(), True),
+    StructField("client_auditor_l2_comment", StringType(), True),
+    StructField("created_date", TimestampType(), True),
+    StructField("created_by", StringType(), True),
+    StructField("updated_date", TimestampType(), True),
+    StructField("updated_by", StringType(), True),
+    StructField("misc_info", StringType(), True),
+    StructField("eviction_type", StringType(), True),
+    StructField("eviction_reason", StringType(), True),
+    StructField("year", StringType(), True),
+    StructField("month", StringType(), True),
+    StructField("date", StringType(), True),
+    StructField("active_status", StringType(), True),
+])
 # class Aggregator:
 #     def __init__(self,glue_context) -> None:
 #         self.glue_context=glue_context
@@ -55,11 +88,12 @@ class Aggregator:
         self.merged_match_suggestion = utils.add_prefix_to_column_name(merged_match_suggestion, "new_", cols_to_rename)
         
         cols_to_rename = []
-        self.mdw = mdw
+        self.mdw = self.remove_audited_matches()
         if mdw is not None:
             self.prefixed_mdw = utils.add_prefix_to_column_name(mdw, "old_", cols_to_rename)
         
         self.glue_context = glue_context
+
         
     def aggregate_match(self, mdw: DataFrame, match_suggestion: DataFrame):
         # cols = set(mdw.columns).difference(set(["source_score_map"]))
@@ -84,18 +118,34 @@ class Aggregator:
                                                                     .when( col("old_score").isNotNull() & (col("old_score") != col("updated_score") ), lit("updated") )\
                                                                     .otherwise( lit("not_updated") ) 
                                                     )
+        return merged_matches
+    
+    def generate_updated_mdw(self, merged_match: DataFrame):
         
         merged_matches = merged_matches.withColumnRenamed("updated_score", "score")
-        
         merged_matches = merged_matches.groupBy("pair_id", "base_sku_uuid", "comp_sku_uuid", "base_source_store", "comp_source_store").\
                                         agg( map_from_entries( collect_list( struct("match_source","score"))).alias("source_score_map"), 
                                             collect_set("match_status").alias("match_status") , sum(col("score")).alias("aggregated_score") )
-                                        
-                                        
+                                                                       
         updated_matches = merged_matches.filter(array_contains(col("match_status"), "updated"))
-        
         updated_matches = updated_matches.withColumn("status", lit("unaudited"))
+
+        return updated_matches
+    
+    def get_match_history(self, merged_match: DataFrame):
+        merged_matches = merged_matches.withColumnRenamed("updated_score", "score")
+        merged_matches = merged_matches.groupBy("pair_id", "base_sku_uuid", "comp_sku_uuid", "base_source_store", "comp_source_store").\
+                                        agg( map_from_entries( collect_list( struct("match_source","score"))).alias("source_score_map"), 
+                                            collect_set("match_status").alias("match_status") , sum(col("score")).alias("aggregated_score") )
+                                                                       
+        updated_matches = merged_matches.filter(array_contains(col("match_status"), "updated"))
+        updated_matches = updated_matches.withColumn("status", lit("unaudited"))
+
+        return updated_matches
         
+
+
+
         
         # we need to remove audited matches but should we update the score as well
         # 
