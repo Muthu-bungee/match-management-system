@@ -57,9 +57,7 @@ class Pruner:
             return seller_type in ['1P_OR_3P','3P']'''
     
     def prune(self,match_df):
-        
-       
-       
+        pass
 
     def executor(self,row):
         print('===.',row)
