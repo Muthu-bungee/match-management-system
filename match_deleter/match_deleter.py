@@ -4,7 +4,7 @@ from awsglue.utils import getResolvedOptions
 from pyspark.context import SparkContext
 from awsglue.context import GlueContext
 from awsglue.job import Job
-from match_deactivator.src.runner import Match_Deactivator_Runner
+from match_deleter.src.runner import Match_Deleter_Runner
 
 
 args = getResolvedOptions(sys.argv, ['JOB_NAME', "env"])
@@ -19,5 +19,5 @@ job.commit()
 
 if __name__ == "__main__":
     print("running in environment" ,args['env'])
-    Match_Deactivator_Runner(args, spark).run()
+    Match_Deleter_Runner(args, spark).run()
     print('Program run successfully')

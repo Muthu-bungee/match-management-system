@@ -27,19 +27,20 @@ class Match_Pruner:
     def preprocessing_matches(self, mdw: DataFrame, match_suggestion: DataFrame):
         match_suggestion = match_suggestion.withColumn("seller_type", lower(col("seller_type")))
         mdw = mdw.withColumn("seller_type", lower(col("seller_type")))\
-            .withColumn("match_type", when( col("match_type").isNotNull(), lower(col("match_type")) ).otherwise(col("match_type")) )
+            .withColumn("bungee_audit_status", when( col("bungee_audit_status").isNotNull(), lower(col("bungee_audit_status")) ).otherwise(col("bungee_audit_status")) )
 
         return mdw, match_suggestion
     
     def separate_audited_and_unaudited_matches(self, match_suggestion:DataFrame, mdw:DataFrame):
         print("separate_audited_and_unaudited_matches")
         window_spec = Window.partitionBy("base_sku_uuid")
-        similar_matches = mdw.filter(col('match_type').isin(['equivalent', 'similar']))
+        similar_matches = mdw.filter(col('bungee_audit_status').isin(['equivalent', 'similar']))
         similar_matches = similar_matches.withColumn("audited_match_seller_type_list", concat_ws( "_", array_sort( collect_set(col("seller_type")).over(window_spec) ) ) )
         similar_matches = similar_matches.withColumn("misc_info", concat(lit("similar_match_"), col("pair_id")) ).\
             select("base_sku_uuid", "audited_match_seller_type_list", "misc_info", col("seller_type").alias("audited_match_seller_type"))
+        similar_matches.show(n=10)                                
                
-        exact_matches = mdw.filter(col('match_type').isin(['exact']))
+        exact_matches = mdw.filter(col('bungee_audit_status').isin(['exact']))
         exact_matches = exact_matches.withColumn("audited_match_seller_type_list", concat_ws("_", array_sort( collect_set(col("seller_type")).over(window_spec) ) ) )
         exact_matches = exact_matches.withColumn("misc_info", concat(lit("exact_match_"), col("pair_id")) ).\
                         select("base_sku_uuid", "audited_match_seller_type_list","misc_info", col("seller_type").alias("audited_match_seller_type"))
@@ -50,11 +51,18 @@ class Match_Pruner:
         pruned_suggestion = None
         match_suggestion = None
         if self.config['match_type'] == 'exact' or self.config['match_type'] == 'exact_over_similar':
-            runed_suggestion, match_suggestion = self.prune_for_exact_match_config(exact_matches, audited_base_product_unaudited_matches) 
+            pruned_suggestion, match_suggestion = self.prune_for_exact_match_config(exact_matches, audited_base_product_unaudited_matches) 
 
         elif self.config['match_type'] == 'similar' or self.config['match_type'] == 'exact_or_similar':
             exact_and_similar_match = exact_matches.union(similar_matches)
             pruned_suggestion, match_suggestion = self.prune_for_exact_similar_match(audited_base_product_unaudited_matches, exact_and_similar_match)
+            
+        if pruned_suggestion is not None:
+            pruned_suggestion = pruned_suggestion.withColumn("bungee_audit_status", lit("pruned"))
+            pruned_suggestion = pruned_suggestion.withColumn("bungee_auditor", lit("match_management_system"))
+            pruned_suggestion = pruned_suggestion.withColumn("updated_by", lit("match_management_system"))
+            pruned_suggestion = pruned_suggestion.withColumn("updated_date", current_timestamp())
+            
         return pruned_suggestion, match_suggestion
 
     def prune_for_exact_similar_match(self, audited_base_product_unaudited_matches, exact_and_similar_match):
