@@ -13,7 +13,7 @@ schema = StructType([
     StructField("comp_source_store", StringType(), True),
     StructField("match_source_score_map", MapType(StringType(), DoubleType()), True),
     StructField("aggregated_score", DoubleType(), True),
-    StructField("bungee_audit_status", StringType(), True), # un_AUDITED, PRUNED, exact, similar, not_a_match
+    StructField("bungee_audit_status", StringType(), True), # un_AUDITED, PRUNED, exact, similar, not_a_match, unsure, conflict, deactivated
     StructField("misc_info", StringType(), True),
     StructField("bungee_auditor", StringType(), True), # job_name (pruned during offline) or auditor_name also pruning online
     StructField("bungee_audit_date", TimestampType(), True),
