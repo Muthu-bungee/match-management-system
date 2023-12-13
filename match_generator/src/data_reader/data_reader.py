@@ -1,20 +1,30 @@
-from bungee_utils.spark_utils.db_reader.s3 import S3Reader
-from bungee_utils.spark_utils.db_reader.aurora import AuroraReader
-from bungee_utils.spark_utils.db_reader.athena import AthenaReader
 from pyspark.sql.types import DoubleType
 from pyspark.sql import DataFrame
 from pyspark.sql.types import *
 from pyspark.sql.session import SparkSession
 
 class DataFetcher:
-    def __init__(self, args, spark:SparkSession ) -> None:
+    def __init__(self, args, spark:SparkSession, env ) -> None:
         self.args = args
         self.spark = spark
+        self.env = env
         empty_schema = StructType([])
         # Create an empty DataFrame
         self.empty_df = self.spark.createDataFrame([], schema=empty_schema)
         self.database = self.args["match_suggestion"]["database"]
         self.table = self.args["match_suggestion"]["table"]
+        
+    def fetch_match_suggestion(self) -> DataFrame:
+        if self.env == 'dev':
+            match_suggestion = self.spark.read.option("header", "true").csv("data/1st_run.csv")
+            return match_suggestion
+        try: 
+            start = self.args["upc"]["start"]
+            end = self.args["upc"]["end"]
+            match_suggestion = self.spark.sql(f"select * from {self.database}.{self.table} where match_source = 'UPC' and creation_date between {start} and {end}")
+            return match_suggestion
+        except Exception as e:
+            raise e
     
     def fetch_upc_matches(self) -> DataFrame:
         try: 
@@ -53,6 +63,9 @@ class DataFetcher:
             return None
     
     def fetch_mdw(self) -> DataFrame:
+        if self.env == 'dev':
+            mw_df = self.spark.read.option("header", "true").parquet("data/match_warehouse.parquet")
+            return mw_df
         try:
             mw_database = self.args["match_warehouse"]["database"]
             mw_table = self.args["match_warehouse"]["table"]
@@ -60,8 +73,8 @@ class DataFetcher:
                                     SELECT * FROM {mw_database}.{mw_table} 
                                 )""")
             return mdw
-        except :
-            return None
+        except Exception as e:
+            raise e
         
     
 # class DataReader:

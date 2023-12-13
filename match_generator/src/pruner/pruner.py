@@ -5,36 +5,46 @@ from bungee_utils.spark_utils.function.dataframe_util import *
 from pyspark.sql.window import Window
 
 class Match_Pruner:
-    def __init__(self, mdw: DataFrame, match_suggestion: DataFrame, config: dict) -> None:
+    def __init__(self, mdw: DataFrame, match_suggestion: DataFrame, config: dict, env: str) -> None:
         self.mdw = mdw
         self.match_suggestion = match_suggestion
         self.config = config
+        self.env = env
 
     def prune_matches(self):
         self.mdw, match_suggestion = self.preprocessing_matches(self.mdw, self.match_suggestion)
         similar_matches, exact_matches, unaudited_matches = self.separate_audited_and_unaudited_matches(match_suggestion, self.mdw)
-        similar_matches.show(truncate = False)
-        exact_matches.show(truncate = False)
-        unaudited_matches.show(truncate = False)
+        if self.env != "prod":
+            print("similar_matches")
+            similar_matches.show(truncate = False)
+            print("exact_matches")
+            exact_matches.show(truncate = False)
+            print("unaudited_matches")
+            unaudited_matches.show(truncate = False)
         pruned_suggestion, match_suggestion = self.prune_match_based_on_client_config(similar_matches, exact_matches, unaudited_matches)
         updated_match_suggestion = combine_dfs([pruned_suggestion, match_suggestion]).drop("audited_match_seller_type_list","audited_match_seller_type")
         updated_match_suggestion.cache()
-        if updated_match_suggestion.count() == unaudited_matches.count():
-            print("matches are not missing")
-        elif updated_match_suggestion.count() < unaudited_matches.count(): 
-            print("matches are missing")
-        else :
-            print("duplicate matches are present")
-        if pruned_suggestion is not None:
-            pruned_suggestion.show(truncate = False)
-        if match_suggestion is not None:
-            match_suggestion.show(truncate = False)
+        
+        if self.env != "prod":
+            if updated_match_suggestion.count() == unaudited_matches.count():
+                print("matches are not missing")
+            elif updated_match_suggestion.count() < unaudited_matches.count(): 
+                print("matches are missing")
+            else :
+                print("duplicate matches are present")
+            if pruned_suggestion is not None:
+                print("pruned_suggestion")
+                pruned_suggestion.show(truncate = False)
+            if match_suggestion is not None:
+                print("match_suggestion")
+                match_suggestion.show(truncate = False)
         return updated_match_suggestion
 
     def preprocessing_matches(self, mdw: DataFrame, match_suggestion: DataFrame):
         match_suggestion = match_suggestion.withColumn("seller_type", lower(col("seller_type")))
         mdw = mdw.withColumn("seller_type", lower(col("seller_type")))\
-            .withColumn("bungee_audit_status", when( col("bungee_audit_status").isNotNull(), lower(col("bungee_audit_status")) ).otherwise(col("bungee_audit_status")) )
+            .filter( col( "bungee_audit_status").isin(["EXACT", "SIMILAR", "NOT_A_MATCH"])  )\
+            .withColumn( "bungee_audit_status", lower(col("bungee_audit_status")) )
 
         return mdw, match_suggestion
     
@@ -50,7 +60,7 @@ class Match_Pruner:
         exact_matches = exact_matches.withColumn("audited_match_seller_type_list", concat_ws("_", array_sort( collect_set(col("seller_type")).over(window_spec) ) ) )
         exact_matches = exact_matches.withColumn("misc_info", concat(lit("exact_match_"), col("pair_id")) ).\
                         select("base_sku_uuid", "comp_source_store", "audited_match_seller_type_list", "misc_info", col("seller_type").alias("audited_match_seller_type"))
-        unaudited_matches = match_suggestion.join(mdw.select("pair_id"), 'pair_id', 'left_anti')
+        unaudited_matches = match_suggestion.join(mdw.select("pair_id"), 'pair_id', 'left_anti').drop("misc_info")
         
         return similar_matches, exact_matches, unaudited_matches
 
