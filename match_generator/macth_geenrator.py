@@ -1,14 +1,23 @@
+
+import sys
+from awsglue.transforms import *
+from awsglue.utils import getResolvedOptions
 from pyspark.context import SparkContext
 from awsglue.context import GlueContext
-import sys
-sys.path.insert(0,'/home/glue_user/workspace')
+from awsglue.job import Job
 from match_generator.src.runner import MatchGenerator
-if __name__=='__main__':
-    spark=SparkContext.getOrCreate()
-    spark.setLogLevel("WARN")
-    glue_context=GlueContext(spark)
-    run_config={
-        "env":"ut"
-    }
-generator=MatchGenerator(glue_context)
-generator.run(None)
+
+args = getResolvedOptions(sys.argv, ['JOB_NAME', "env"])
+
+sc = SparkContext()
+glueContext = GlueContext(sc)
+spark = glueContext.spark_session
+spark.sparkContext.setLogLevel('WARN')
+job = Job(glueContext)
+job.init(args['JOB_NAME'], args)
+job.commit()
+
+if __name__ == "__main__":
+    print("running in environment" ,args['env'])
+    MatchGenerator(glueContext, spark).run(None)
+    print('Program run successfully')

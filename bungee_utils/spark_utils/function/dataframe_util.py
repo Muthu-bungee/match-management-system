@@ -10,10 +10,17 @@ def get_max_id(df: DataFrame) -> int:
     print(max_id)
     return max_id
 
-def combine_dfs(df_list: List[DataFrame]) -> DataFrame:
+def combine_dfs(df_list: list[DataFrame]) -> DataFrame:
     print("Combining dfs")
+    if df_list is None:
+        return None
+    
+    df_list = [df for df in df_list if df is not None]
+    if len(df_list) == 0:
+        return None
+    if len(df_list) == 1:
+        return df_list[0]
     combined_df = reduce(lambda df1, df2: df1.union(df2.select(df1.columns)), df_list)
-    # print("Combined df size = {}".format(combined_df.count()))
     return combined_df
 
 def insert_id(df: DataFrame, start_idx: str):

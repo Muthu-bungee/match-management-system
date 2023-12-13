@@ -160,12 +160,12 @@ class Aggregator:
         merged_match_suggestion = self.aggregate_match_suggestion_and_mdw(self.mdw, self.merged_match_suggestion)
         merged_match_suggestion.cache()
         updated_matches_suggestion, new_matches_suggestion = self.fetch_updated_and_new_matches_suggestions(merged_match_suggestion)
-        updated_matches_suggestion.cache()
-        new_matches_suggestion.cache()
         updated_matches_suggestion = self.convert_schema_for_updated_match_suggestion(updated_matches_suggestion)
         new_matches_suggestion = self.convert_schema_for_new_match_suggestion(new_matches_suggestion)
         updated_matches_suggestion.cache()
         new_matches_suggestion.cache()
+        aggregated_match_suggestion = utils.combine_dfs([updated_matches_suggestion, new_matches_suggestion])
+        return aggregated_match_suggestion
 
 
 # ----- exploded to map
