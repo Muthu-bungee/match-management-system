@@ -4,7 +4,7 @@ from awsglue.utils import getResolvedOptions
 from pyspark.context import SparkContext
 from awsglue.context import GlueContext
 from awsglue.job import Job
-from match_generator.src.runner import MatchGenerator
+from match_generator.runner import MatchGenerator
 
 args = getResolvedOptions(sys.argv, ['JOB_NAME', "env"])
 

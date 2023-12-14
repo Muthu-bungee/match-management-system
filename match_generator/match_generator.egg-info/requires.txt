@@ -1,3 +1,4 @@
+bungee_utils
 
 [buildlocal]
 build
