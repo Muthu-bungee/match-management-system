@@ -11,17 +11,18 @@ class DataFetcher:
         empty_schema = StructType([])
         # Create an empty DataFrame
         self.empty_df = self.spark.createDataFrame([], schema=empty_schema)
-        self.database = self.args["match_suggestion"]["database"]
-        self.table = self.args["match_suggestion"]["table"]
+        
         
     def fetch_match_suggestion(self) -> DataFrame:
         if self.env == 'dev':
             match_suggestion = self.spark.read.option("header", "true").csv("data/1st_run.csv")
             return match_suggestion
-        try: 
-            start = self.args["upc"]["start"]
-            end = self.args["upc"]["end"]
-            match_suggestion = self.spark.sql(f"select * from {self.database}.{self.table} where match_source = 'UPC' and creation_date between {start} and {end}")
+        try:
+            self.database = self.args["match_suggestion"]["database"]
+            self.table = self.args["match_suggestion"]["table"]
+            match_suggestion = self.spark.sql(f"select * from {self.database}.{self.table}")
+            if self.env != 'prod':
+                match_suggestion.show()
             return match_suggestion
         except Exception as e:
             raise e
@@ -72,6 +73,8 @@ class DataFetcher:
             mdw = self.spark.sql(f"""
                                     SELECT * FROM {mw_database}.{mw_table} 
                                 )""")
+            if self.env != 'prod':
+                mdw.show()
             return mdw
         except Exception as e:
             raise e

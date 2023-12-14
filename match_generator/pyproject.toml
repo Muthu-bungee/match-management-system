@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=58.1.0"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "match_generator"
+version = "0.0.1"
+authors = [
+  { name="Kaushik Borah", email="kaushik@bungeetech.com" },
+]
+description = "random"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+[project.optional-dependencies]
+buildlocal = [
+  "build",
+  "gitmatch"
+]
+[tool.setuptools.packages.find]
+include = ["src", "src.*"]
+[tool.setuptools]
+include-package-data = true
+[tool.setuptools.package-data]
+"*" = ["*.ini", "docs", "*.yaml"]
+[project.urls]
+"Homepage" = "https://github.com/pypa/sampleproject"
+"Bug Tracker" = "https://github.com/pypa/sampleproject/issues"

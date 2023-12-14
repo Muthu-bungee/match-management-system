@@ -11,12 +11,12 @@ from pyspark.context import SparkContext
 from match_generator.src.data_reader.data_reader import DataFetcher
 from match_generator.src.pruner.pruner import Match_Pruner
 from match_generator.src.aggregator.aggregator import Aggregator
+from match_generator.src.data_loader.data_loader import DataLoader
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import *
 
 class MatchGenerator:
-    def __init__(self, glue_context, spark: SparkSession, args: dict, env: str) -> None:
-        self.glue_context=glue_context
+    def __init__(self, spark: SparkSession, args: dict, env: str) -> None:
         # resource_stream=pkg_resources.resource_string('match_generator','mdp-config.ini')
         # self.mdp_config=configparser.ConfigParser()
         # self.mdp_config.read_string(resource_stream.decode("utf-8"))
@@ -35,6 +35,8 @@ class MatchGenerator:
         match_suggestion = self.match_pruning(mw, directed_matches)
         if self.env != "prod":
             match_suggestion.show()
+            
+        self.data_loading(match_suggestion)
         
     def extraction(self):
         print("data fetching started")
@@ -75,7 +77,8 @@ class MatchGenerator:
         print('match aggregation completed')
         return aggregated_match_suggestion
 
-
+    def data_loading(self, match_suggestion: DataFrame):
+        DataLoader(self.args).save_date_to_db(match_suggestion)
 
     def fetch_arguments(self, input_args):
         env_dependent_args = {
@@ -85,11 +88,14 @@ class MatchGenerator:
                 "s3_bucket" : "mdp-ut.east1",
                 "s3_prefix" : "match_suggestion"
             },
-            "mdw" : {
+            "match_warehouse" : {
                 "database": "ml-mdp-test",
                 "table" : "match_warehouse",
                 "s3_bucket" : "mdp-ut.east1",
                 "s3_prefix" : "match_warehouse",
+                "write_operation" : "upsert",
+                "precombine_field" : ["segment","base_source_store","bungee_audit_status","comp_source_store"],
+                "record_key" : "updated_date"
             },
             "hudi_config":{
                 "commonConfig" :{
