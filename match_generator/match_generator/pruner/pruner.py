@@ -79,14 +79,7 @@ class Match_Pruner:
             pruned_suggestion = pruned_suggestion.withColumn("bungee_audit_status", lit("PRUNED"))
             pruned_suggestion = pruned_suggestion.withColumn("bungee_auditor", lit("match_management_system"))
             pruned_suggestion = pruned_suggestion.withColumn("updated_by", lit("match_management_system"))
-            pruned_suggestion = pruned_suggestion.withColumn("updated_date", current_timestamp())
-            
-        if match_suggestion is not None:
-            match_suggestion = match_suggestion.withColumn("bungee_audit_status", lit("UNAUDITED"))
-            match_suggestion = match_suggestion.withColumn("bungee_auditor", lit(None))
-            match_suggestion = match_suggestion.withColumn("updated_by", lit(None))
-            match_suggestion = match_suggestion.withColumn("updated_date", lit(None))
-            match_suggestion = match_suggestion.withColumn("misc_info", lit(None))
+            pruned_suggestion = pruned_suggestion.withColumn("updated_date", current_timestamp().cast("date"))
             
         return pruned_suggestion, match_suggestion
 

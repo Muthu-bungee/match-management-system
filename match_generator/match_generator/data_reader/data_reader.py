@@ -15,12 +15,12 @@ class DataFetcher:
         
     def fetch_match_suggestion(self) -> DataFrame:
         if self.env == 'dev':
-            match_suggestion = self.spark.read.option("header", "true").csv("data/1st_run.csv")
+            match_suggestion = self.spark.read.option("header", "true").csv("/home/preacher/Bungee/CodeRepo/match-management-system/data/1st_run.csv")
             return match_suggestion
         try:
             self.database = self.args["match_suggestion"]["database"]
             self.table = self.args["match_suggestion"]["table"]
-            match_suggestion = self.spark.sql(f"select * from {self.database}.{self.table}")
+            match_suggestion = self.spark.sql(f'select * from `{self.database}`.`{self.table}`')
             if self.env != 'prod':
                 match_suggestion.show()
             return match_suggestion
@@ -65,14 +65,12 @@ class DataFetcher:
     
     def fetch_mdw(self) -> DataFrame:
         if self.env == 'dev':
-            mw_df = self.spark.read.option("header", "true").parquet("data/match_warehouse.parquet")
+            mw_df = self.spark.read.option("header", "true").parquet("/home/preacher/Bungee/CodeRepo/match-management-system/data/match_warehouse.parquet")
             return mw_df
         try:
             mw_database = self.args["match_warehouse"]["database"]
             mw_table = self.args["match_warehouse"]["table"]
-            mdw = self.spark.sql(f"""
-                                    SELECT * FROM {mw_database}.{mw_table} 
-                                )""")
+            mdw = self.spark.sql(f"""SELECT * FROM `{mw_database}`.`{mw_table}`""")
             if self.env != 'prod':
                 mdw.show()
             return mdw

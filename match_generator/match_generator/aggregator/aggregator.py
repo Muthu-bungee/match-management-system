@@ -68,7 +68,7 @@ class Aggregator:
                     merged_matches.show(truncate = False, n = 100)
             merged_matches = merged_matches.drop("match_source_score_map", "aggregated_score")
         else:
-            merged_matches = merged_match_suggestion.withColumn("old_score", lit(None))
+            merged_matches = merged_match_suggestion.withColumn("old_score", lit(None).cast("string"))
         mdw.cache()
         merged_match_suggestion.cache()
         score_diff = col("old_score") - col("new_score")
@@ -158,46 +158,38 @@ class Aggregator:
     
     def convert_schema_for_updated_match_suggestion(self, updated_matches_suggestion:DataFrame, mdw: DataFrame):
         updated_matches_suggestion = updated_matches_suggestion.select("pair_id","segment","base_sku_uuid","base_source_store","comp_sku_uuid","comp_source_store","match_source_score_map","aggregated_score", "created_date", "created_by","seller_type")
-        updated_matches_suggestion = updated_matches_suggestion.withColumn("updated_date", current_timestamp() )\
+        updated_matches_suggestion = updated_matches_suggestion.withColumn("updated_date", current_timestamp().cast("date") )\
                                                         .withColumn("updated_by", lit("match_management_system") )\
-                                                        .withColumn("bungee_audit_status", lit("UNAUDITED"))\
-                                                        .withColumn("bungee_auditor", lit(None))\
-                                                        .withColumn("bungee_audit_date", lit(None))\
-                                                        .withColumn("bungee_auditor_comment", lit(None))\
-                                                        .withColumn("client_audit_status_l1", lit(None))\
-                                                        .withColumn("client_auditor_l1", lit(None))\
-                                                        .withColumn("client_audit_date_l1", lit(None))\
-                                                        .withColumn("client_auditor_l1_comment", lit(None))\
-                                                        .withColumn("client_audit_status_l2", lit(None))\
-                                                        .withColumn("client_auditor_l2", lit(None))\
-                                                        .withColumn("client_audit_date_l2", lit(None))\
-                                                        .withColumn("client_auditor_l2_comment", lit(None))\
-                                                        .withColumn("misc_info", lit(None))
+                                                        .withColumn("bungee_audit_status", lit("UNAUDITED"))
                                                         
         return updated_matches_suggestion
                                                                 
     def convert_schema_for_new_match_suggestion(self, new_matches_suggestion:DataFrame):
         # "base_source_store","comp_source_store",
         new_matches_suggestion = new_matches_suggestion.select("pair_id","segment","base_sku_uuid","base_source_store","comp_sku_uuid","comp_source_store","match_source_score_map","aggregated_score","seller_type")
-        new_matches_suggestion = new_matches_suggestion.withColumn("created_date", current_timestamp() )\
+        new_matches_suggestion = new_matches_suggestion.withColumn("created_date", current_timestamp().cast("date") )\
                                                         .withColumn("created_by", lit("match_management_system") )\
-                                                        .withColumn("updated_date", lit(None) )\
-                                                        .withColumn("updated_by", lit(None) )\
-                                                        .withColumn("bungee_audit_status", lit("UNAUDITED"))\
-                                                        .withColumn("bungee_auditor", lit(None))\
-                                                        .withColumn("bungee_audit_date", lit(None))\
-                                                        .withColumn("bungee_auditor_comment", lit(None))\
-                                                        .withColumn("client_audit_status_l1", lit(None))\
-                                                        .withColumn("client_auditor_l1", lit(None))\
-                                                        .withColumn("client_audit_date_l1", lit(None))\
-                                                        .withColumn("client_auditor_l1_comment", lit(None))\
-                                                        .withColumn("client_audit_status_l2", lit(None))\
-                                                        .withColumn("client_auditor_l2", lit(None))\
-                                                        .withColumn("client_audit_date_l2", lit(None))\
-                                                        .withColumn("client_auditor_l2_comment", lit(None))\
-                                                        .withColumn("misc_info", lit(None))
+                                                        .withColumn("updated_date", current_timestamp().cast("date") )\
+                                                        .withColumn("updated_by", lit("match_management_system") )\
+                                                        .withColumn("bungee_audit_status", lit("UNAUDITED"))
         return new_matches_suggestion
 
+    def add_additional_columns(self, aggregated_match_suggestion:DataFrame):
+        aggregated_match_suggestion = aggregated_match_suggestion\
+                                                .withColumn("bungee_auditor", lit(None).cast("string"))\
+                                                .withColumn("bungee_audit_date", lit(None).cast("date"))\
+                                                .withColumn("bungee_auditor_comment", lit(None).cast("string"))\
+                                                .withColumn("client_audit_status_l1", lit(None).cast("string"))\
+                                                .withColumn("client_auditor_l1", lit(None).cast("string"))\
+                                                .withColumn("client_audit_date_l1", lit(None).cast("date"))\
+                                                .withColumn("client_auditor_l1_comment", lit(None).cast("string"))\
+                                                .withColumn("client_audit_status_l2", lit(None).cast("string"))\
+                                                .withColumn("client_auditor_l2", lit(None).cast("string"))\
+                                                .withColumn("client_audit_date_l2", lit(None).cast("date"))\
+                                                .withColumn("client_auditor_l2_comment", lit(None).cast("string"))\
+                                                .withColumn("misc_info", lit(None).cast("string"))
+        return aggregated_match_suggestion
+    
     def aggregate_matches(self):
         merged_match_suggestion = self.aggregate_match_suggestion_and_mdw(self.mdw, self.merged_match_suggestion)
         if self.env != 'prod':
@@ -240,6 +232,7 @@ class Aggregator:
         updated_matches_suggestion.cache()
         new_matches_suggestion.cache()
         aggregated_match_suggestion = utils.combine_dfs([updated_matches_suggestion, new_matches_suggestion])
+        aggregated_match_suggestion = self.add_additional_columns(aggregated_match_suggestion)
         return aggregated_match_suggestion
 
 

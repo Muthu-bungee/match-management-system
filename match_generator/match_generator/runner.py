@@ -94,8 +94,9 @@ class MatchGenerator:
                 "s3_bucket" : "mdp-ut.east1",
                 "s3_prefix" : "match_warehouse",
                 "write_operation" : "upsert",
-                "precombine_field" : ["segment","base_source_store","bungee_audit_status","comp_source_store"],
-                "record_key" : "updated_date"
+                "partition_columns" : ["segment","base_source_store","bungee_audit_status","comp_source_store"],
+                "record_key" : "pair_id",
+                "precombine_field" : "updated_date"
             },
             "hudi_config":{
                 "commonConfig" :{

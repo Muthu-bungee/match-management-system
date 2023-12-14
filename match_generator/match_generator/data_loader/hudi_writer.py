@@ -1,6 +1,6 @@
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import *
-from bungee_utils.python_utils.glue_catalog import GlueCatalog
+# from bungee_utils.python_utils.glue_catalog import GlueCatalog
 
 
 class HudiDataFrameWriter:
@@ -41,19 +41,25 @@ class HudiDataFrameWriter:
 
     def get_table_path_and_partition(self, db_name, table_name):
         if self.db_info['write_operation'] == 'init':
-            path = f's3://{self.s3_bucket}/{self.s3_prefix}'
+            path = f's3://{self.db_info["s3_bucket"]}/{self.db_info["s3_prefix"]}'
             partition_columns = ','.join(self.db_info['partition_columns'])
             return partition_columns, path
         else:
-            catalog_metadata = GlueCatalog(db_name, table_name)
-            path = catalog_metadata.get_table_location()
-            partition_columns = ','.join(catalog_metadata.get_table_partition())
+            path = f's3://{self.db_info["s3_bucket"]}/{self.db_info["s3_prefix"]}'
+            partition_columns = ','.join(self.db_info['partition_columns'])
             return partition_columns, path
+        # else:
+        #     catalog_metadata = GlueCatalog(db_name, table_name)
+        #     path = catalog_metadata.get_table_location()
+        #     partition_columns = ','.join(catalog_metadata.get_table_partition())
+        #     return partition_columns, path
 
     def write_hudi_data(self, spark_df: DataFrame):
         """
         Write data to the Hudi table.
         """
+        spark_df.printSchema()
+        spark_df.show()
         spark_df.write.format("org.apache.hudi") \
             .options(**self.configs[self.db_info["write_operation"]]) \
             .mode('append') \
