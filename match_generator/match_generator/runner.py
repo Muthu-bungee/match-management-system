@@ -8,10 +8,10 @@ import bungee_utils.spark_utils.function.dataframe_util as utils
 # from awsglue.job import Job
 # from awsglue.utils import getResolvedOptions
 from pyspark.context import SparkContext
-from match_generator.data_reader.data_reader import DataFetcher
-from match_generator.pruner.pruner import Match_Pruner
-from match_generator.aggregator.aggregator import Aggregator
-from match_generator.data_loader.data_loader import DataLoader
+from match_generator.extractor.data_reader import DataFetcher
+from match_generator.transformer.pruner import Match_Pruner
+from match_generator.transformer.aggregator import Aggregator
+from match_generator.loader.data_loader import DataLoader
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import *
 

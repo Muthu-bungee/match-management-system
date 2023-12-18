@@ -4,34 +4,7 @@ from pyspark.sql import DataFrame
 import bungee_utils.spark_utils.function.dataframe_util as utils
 from pyspark.sql.window import * 
 
-schema = StructType([
-    StructField("pair_id", StringType(), True),
-    StructField("segment", StringType(), True),
-    StructField("base_sku_uuid", StringType(), True),
-    StructField("comp_sku_uuid", StringType(), True),
-    StructField("base_source_store", StringType(), True),
-    StructField("comp_source_store", StringType(), True),
-    StructField("match_source_score_map", MapType(StringType(), DoubleType()), True),
-    StructField("aggregated_score", DoubleType(), True),
-    StructField("bungee_audit_status", StringType(), True), # UNAUDITED, PRUNED, exact, similar, not_a_match, unsure, conflict, deactivated
-    StructField("misc_info", StringType(), True),
-    StructField("bungee_auditor", StringType(), True), # job_name (pruned during offline) or auditor_name also pruning online
-    StructField("bungee_audit_date", TimestampType(), True),
-    StructField("bungee_auditor_comment", StringType(), True),
-    StructField("seller_type", StringType(), True),
-    StructField("client_audit_status_l1", StringType(), True),
-    StructField("client_auditor_l1", StringType(), True),
-    StructField("client_audit_date_l1", TimestampType(), True),
-    StructField("client_auditor_l1_comment", StringType(), True),
-    StructField("client_audit_status_l2", StringType(), True),
-    StructField("client_auditor_l2", StringType(), True),
-    StructField("client_audit_date_l2", TimestampType(), True),
-    StructField("client_auditor_l2_comment", StringType(), True),
-    StructField("created_date", TimestampType(), True),
-    StructField("created_by", StringType(), True),
-    StructField("updated_date", TimestampType(), True),
-    StructField("updated_by", StringType(), True),
-])
+
 
 NEW = 3
 UPDATED = 2
