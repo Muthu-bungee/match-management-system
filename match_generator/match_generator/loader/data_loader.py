@@ -1,4 +1,4 @@
-from match_generator.data_loader.hudi_writer import HudiDataFrameWriter
+from match_generator.loader.hudi_writer import HudiDataFrameWriter
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import *
 
@@ -32,6 +32,7 @@ class DataLoader:
                 withColumn("created_date", col("created_date").cast("date") ).\
                 withColumn("created_by", col("created_by").cast("string") ).\
                 withColumn("updated_date", col("updated_date").cast("date") ).\
+                withColumn("workflow_name", col("workflow_name").cast("string") ).\
                 withColumn("updated_by", col("updated_by").cast("string") )
                 
         mw = mw.na.fill("", ["updated_by", "bungee_audit_status", "bungee_auditor", "bungee_auditor_comment", "client_audit_status_l1", "client_auditor_l1", "client_auditor_l1_comment", "client_audit_status_l2", "client_auditor_l2", "client_auditor_l2_comment", "misc_info" ])

@@ -105,6 +105,10 @@ class MATCH_WAREHOUSE:
         NAME = "updated_by"
         DATATYPE = StringType()
         NULLABLE = True
+    class WORKFLOW_NAME:
+        NAME = "workflow_name"
+        DATATYPE = StringType()
+        NULLABLE = True
     
 
 def get_column_list(schema):

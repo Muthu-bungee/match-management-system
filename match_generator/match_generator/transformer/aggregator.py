@@ -160,6 +160,7 @@ class Aggregator:
                                                 .withColumn("client_auditor_l2", lit(None).cast("string"))\
                                                 .withColumn("client_audit_date_l2", lit(None).cast("date"))\
                                                 .withColumn("client_auditor_l2_comment", lit(None).cast("string"))\
+                                                .withColumn("workflow_name", lit(None).cast("string"))\
                                                 .withColumn("misc_info", lit(None).cast("string"))
         return aggregated_match_suggestion
     
