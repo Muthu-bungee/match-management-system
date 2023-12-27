@@ -3,10 +3,11 @@ from pyspark.sql.types import DoubleType
 from pyspark.sql import DataFrame
 from pyspark.sql.types import *
 from pyspark.sql.session import SparkSession
-from bungee_utils.spark_utils.db_reader.aurora import AuroraReader
+# from bungee_utils.spark_utils.db_reader.aurora import AuroraReader
 
 class DataFetcher:
     def __init__(self, args, spark:SparkSession, env , glue_context) -> None:
+        print(env)
         self.args = args
         self.spark = spark
         self.env = env
@@ -20,34 +21,52 @@ class DataFetcher:
         
     def fetch_customer_audit_library(self) -> DataFrame:
         if self.env == 'dev':
-            match_suggestion = self.spark.read.option("header", "true").csv("/home/preacher/Bungee/CodeRepo/match-management-system/data/1st_run.csv")
+            match_suggestion = self.spark.read.option("header", "true").csv("/home/preacher/Bungee/CodeRepo/match-management-system/data/customer_audit_library.csv")
+            return match_suggestion
+        # try:
+        #     database = self.args["customer_audit_library"]["database"]
+        #     access_key = self.args["customer_audit_library"]["access_key"]
+        #     table = self.args["customer_audit_library"]["table"]
+            
+        #     query = f"""
+        #             SELECT * FROM {table}
+        #             WHERE manager_verified_date >= '{self.time_stamp}'
+        #             AND customer_verified_date  >= '{self.time_stamp}'
+        #             AND match_date >= {self.time_stamp_integer}
+        #             """
+        #     match_suggestion = AuroraReader(self.glue_context).get_data(database, access_key, query)
+        #     if self.env != 'prod':
+        #         match_suggestion.show()
+        #     return match_suggestion
+        # except Exception as e:
+        #     raise e
+        
+    def fetch_successful_bungee_audit_library(self) -> DataFrame:
+        if self.env == 'dev':
+            match_suggestion = self.spark.read.option("header", "true").csv("/home/preacher/Bungee/CodeRepo/match-management-system/data/fastlane_successful.csv")
             return match_suggestion
         try:
-            database = self.args["customer_audit_library"]["database"]
-            access_key = self.args["customer_audit_library"]["access_key"]
-            table = self.args["customer_audit_library"]["table"]
-            
+            time_stamp = self.args["last_stack_run_date"]
+            self.database = self.args["successful_bungee_audit_library"]["database"]
+            self.table = self.args["successful_bungee_audit_library"]["table"]
             query = f"""
-                    SELECT * FROM {table}
-                    WHERE manager_verified_date >= '{self.time_stamp}'
-                    AND customer_verified_date  >= '{self.time_stamp}'
-                    AND match_date >= {self.time_stamp_integer}
-                    """
-            match_suggestion = AuroraReader(self.glue_context).get_data(database, access_key, query)
+                SELECT * FROM `{self.database}`.`{self.table}` WHERE match_date >= '{self.time_stamp_integer}'
+            """
+            match_suggestion = self.spark.sql(f'SELECT * FROM `{self.database}`.`{self.table}` WHERE')
             if self.env != 'prod':
                 match_suggestion.show()
             return match_suggestion
         except Exception as e:
             raise e
         
-    def fetch_bungee_audit_library(self) -> DataFrame:
+    def fetch_unsuccessful_bungee_audit_library(self) -> DataFrame:
         if self.env == 'dev':
-            match_suggestion = self.spark.read.option("header", "true").csv("/home/preacher/Bungee/CodeRepo/match-management-system/data/1st_run.csv")
+            match_suggestion = self.spark.read.option("header", "true").csv("/home/preacher/Bungee/CodeRepo/match-management-system/data/fastlane_unsuccessful.csv")
             return match_suggestion
         try:
             time_stamp = self.args["last_stack_run_date"]
-            self.database = self.args["bungee_audit_library"]["database"]
-            self.table = self.args["bungee_audit_library"]["table"]
+            self.database = self.args["unsuccessful_bungee_audit_library"]["database"]
+            self.table = self.args["unsuccessful_bungee_audit_library"]["table"]
             query = f"""
                 SELECT * FROM `{self.database}`.`{self.table}` WHERE match_date >= '{self.time_stamp_integer}'
             """

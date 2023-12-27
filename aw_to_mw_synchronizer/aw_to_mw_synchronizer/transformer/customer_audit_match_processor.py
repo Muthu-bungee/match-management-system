@@ -57,6 +57,7 @@ class CustomerAuditMatchProcessor:
                                     .withColumn(MATCH_WAREHOUSE.UPDATED_BY.NAME, lit(None)) \
                                     .withColumn(MATCH_WAREHOUSE.MISC_INFO.NAME, lit(None)) \
                                     .withColumn(MATCH_WAREHOUSE.SELLER_TYPE.NAME, lit(None)) \
+                                    .withColumn(MATCH_WAREHOUSE.WORKFLOW_NAME.NAME, lit(None)) \
                                     .withColumn("priority", lit(1))
         return customer_audit_matches
     
@@ -168,6 +169,6 @@ class CustomerAuditMatchProcessor:
         
         customer_audit_matches = match_df.union(not_match_df)
         customer_audit_matches.show()
-        customer_audit_matches = customer_audit_matches.select(get_column_list(MATCH_WAREHOUSE))
+        customer_audit_matches = customer_audit_matches.select(get_column_list(MATCH_WAREHOUSE) + ["priority"])
         return customer_audit_matches
     
