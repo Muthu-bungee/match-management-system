@@ -5,18 +5,24 @@ from mdp_common_utils.schema import *
 from mdp_common_utils.constants import *
 
 class MatchMerger:
-    def __init__(self, args: dict, bungee_audit_matches : DataFrame, customer_audit_matches: DataFrame, match_warehouse : DataFrame ) -> None:
+    def __init__(self, env: str, args: dict, bungee_audit_matches : DataFrame, customer_audit_matches: DataFrame, match_warehouse : DataFrame ) -> None:
         self.args = args
         self.bungee_audit_matches = bungee_audit_matches
         self.customer_audit_matches = customer_audit_matches
         self.match_warehouse = match_warehouse
+        self.env = env
     
     def _remove_non_updated_matches(self, match_warehouse: DataFrame, merged_audited_matches: DataFrame):
-        merged_audited_matches
-        all_col_list = get_column_list(MATCH_WAREHOUSE)
-        non_essential_column = [MATCH_WAREHOUSE.CREATED_DATE.NAME, MATCH_WAREHOUSE.CREATED_BY.NAME, MATCH_WAREHOUSE.UPDATED_DATE.NAME, MATCH_WAREHOUSE.UPDATED_BY.NAME]
+        
+        merged_audited_matches = merged_audited_matches.select("*", explode(col(MATCH_WAREHOUSE.MATCH_SOURCE_SCORE_MAP.NAME)).alias("source", "score"))
+        match_warehouse = match_warehouse.select("*", explode(col(MATCH_WAREHOUSE.MATCH_SOURCE_SCORE_MAP.NAME)).alias("source", "score"))
+
+        all_col_list = get_column_list(MATCH_WAREHOUSE) + ["source", "score"]
+        non_essential_column = [MATCH_WAREHOUSE.CREATED_DATE.NAME, MATCH_WAREHOUSE.CREATED_BY.NAME, MATCH_WAREHOUSE.UPDATED_DATE.NAME, MATCH_WAREHOUSE.UPDATED_BY.NAME, MATCH_WAREHOUSE.MATCH_SOURCE_SCORE_MAP.NAME]
         essential_column = list(set(all_col_list).difference(set(non_essential_column)))
+        
         updated_merged_audited_matches = merged_audited_matches.join(match_warehouse, essential_column, "left_anti")
+        updated_merged_audited_matches = updated_merged_audited_matches.drop_duplicates(["pair_id"]).drop("source", "score")
         return updated_merged_audited_matches
       
     def _convert_to_direct_pair_matches(self, undirected_matches:DataFrame):
@@ -55,16 +61,19 @@ class MatchMerger:
                                              row_number().over(window_spec).alias("row_num") )
         
         merged_audited_matches = merged_audited_matches.filter(col("row_num") == 1).drop("row_num")
+        merged_audited_matches = self._convert_to_direct_pair_matches(merged_audited_matches)
         merged_audited_matches = merged_audited_matches.withColumn( MATCH_WAREHOUSE.BUNGEE_AUDIT_STATUS.NAME, \
                                                                         when( size(col("audit_status_list")) > 1, lit(BUNGEE_AUDIT_STATUS.CONFLICT)) \
                                                                         .otherwise( col("audit_status_list").getItem(0) ) )
+        conflict_condition = ( ( col(MATCH_WAREHOUSE.BUNGEE_AUDIT_STATUS.NAME).isNotNull() & col(MATCH_WAREHOUSE.CLIENT_AUDIT_STATUS_L1.NAME).isNotNull() & (col(MATCH_WAREHOUSE.BUNGEE_AUDIT_STATUS.NAME) != col(MATCH_WAREHOUSE.CLIENT_AUDIT_STATUS_L1.NAME)) ) | 
+                              ( col(MATCH_WAREHOUSE.BUNGEE_AUDIT_STATUS.NAME).isNotNull() & col(MATCH_WAREHOUSE.CLIENT_AUDIT_STATUS_L2.NAME).isNotNull() & (col(MATCH_WAREHOUSE.BUNGEE_AUDIT_STATUS.NAME) != col(MATCH_WAREHOUSE.CLIENT_AUDIT_STATUS_L2.NAME)) ) |
+                              ( col(MATCH_WAREHOUSE.CLIENT_AUDIT_STATUS_L1.NAME).isNotNull() & col(MATCH_WAREHOUSE.CLIENT_AUDIT_STATUS_L2.NAME).isNotNull() & (col(MATCH_WAREHOUSE.CLIENT_AUDIT_STATUS_L1.NAME) != col(MATCH_WAREHOUSE.CLIENT_AUDIT_STATUS_L2.NAME)) ) )
         
         merged_audited_matches = merged_audited_matches.withColumn( MATCH_WAREHOUSE.BUNGEE_AUDIT_STATUS.NAME, \
-                                                                        when( ( col(MATCH_WAREHOUSE.BUNGEE_AUDIT_STATUS.NAME) != col(MATCH_WAREHOUSE.CLIENT_AUDIT_STATUS_L1.NAME) ) | ( col(MATCH_WAREHOUSE.BUNGEE_AUDIT_STATUS.NAME) != col(MATCH_WAREHOUSE.CLIENT_AUDIT_STATUS_L2.NAME) ), \
-                                                                             lit(BUNGEE_AUDIT_STATUS.CONFLICT)) \
+                                                                        when( conflict_condition, lit(BUNGEE_AUDIT_STATUS.CONFLICT)) \
                                                                         .otherwise( col(MATCH_WAREHOUSE.BUNGEE_AUDIT_STATUS.NAME) ) )
         updated_merged_audited_matches = self._remove_non_updated_matches(self.match_warehouse, merged_audited_matches)
-        directed_updated_merged_audited_matches = self._convert_to_direct_pair_matches(updated_merged_audited_matches)
-        return directed_updated_merged_audited_matches
+        
+        return updated_merged_audited_matches
     
    

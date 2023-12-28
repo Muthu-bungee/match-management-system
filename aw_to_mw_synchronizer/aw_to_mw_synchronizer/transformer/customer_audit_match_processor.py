@@ -76,15 +76,15 @@ class CustomerAuditMatchProcessor:
     
 
 
-    def _fetch_matched_matches(self, customer_audit_matches: DataFrame):
+    def _fetch_active_matches(self, customer_audit_matches: DataFrame):
         matched_df = customer_audit_matches.filter( (customer_audit_matches.deleted_date.isNull()) | (customer_audit_matches.deleted_date == ""))
         return matched_df
     
-    def _fetch_not_matched_matches(self, customer_audit_matches: DataFrame):
+    def _fetch_deleted_matches(self, customer_audit_matches: DataFrame):
         not_match_df = customer_audit_matches.filter(  ((customer_audit_matches.deleted_date.isNotNull()) & (customer_audit_matches.deleted_date != "")))
         return not_match_df
 
-    def _add_bungee_audit_status_for_matched_matches(self, match_df:DataFrame):
+    def _add_bungee_audit_status_for_active_matches(self, match_df:DataFrame):
         match_df = match_df.withColumn(MATCH_WAREHOUSE.BUNGEE_AUDIT_STATUS.NAME, \
                                                     when( col("match").isin(self.exact_matches), lit(BUNGEE_AUDIT_STATUS.EXACT_MATCH) )\
                                                     .when( col("match").isin(self.similar_matches), lit(BUNGEE_AUDIT_STATUS.SIMILAR_MATCH) )\
@@ -93,8 +93,8 @@ class CustomerAuditMatchProcessor:
                                                 )
         return match_df
     
-    def _add_bungee_audit_status_for_not_matched_matches(self, not_match_df: DataFrame):
-        not_match_df = not_match_df.withColumn( MATCH_WAREHOUSE.BUNGEE_AUDIT_STATUS.NAME, lit(BUNGEE_AUDIT_STATUS.NOT_MATCH) )
+    def _add_bungee_audit_status_for_deleted_matches(self, not_match_df: DataFrame):
+        not_match_df = not_match_df.withColumn( MATCH_WAREHOUSE.BUNGEE_AUDIT_STATUS.NAME, lit(BUNGEE_AUDIT_STATUS.INACTIVE) )
         return not_match_df
 
     def _add_match_source_for_legacy_matches(self, match_df: DataFrame):
@@ -142,7 +142,7 @@ class CustomerAuditMatchProcessor:
         return match_df
         
     
-    def _add_match_source_for_matched_matches(self, match_df: DataFrame):
+    def _add_match_source(self, match_df: DataFrame):
         match_df = match_df.withColumn( "model_used", lower(col("model_used")))
         match_df = match_df.withColumn( "match_source", lit(None).cast(StringType()) )
         match_df = self._add_match_source_for_legacy_matches(match_df)
@@ -152,23 +152,36 @@ class CustomerAuditMatchProcessor:
         match_df = self._add_match_source_for_upc_matches(match_df)
         match_df = self._add_match_source_for_transitive_matches(match_df)
         match_df = match_df.withColumn("match_source", when(  col( "match_source").isNull() , lit('UNKNOWN') ).otherwise( col("match_source") ) )
+       
         return match_df
     
     def process(self):
         print(f"Running customer_audit_matches")
-        customer_audit_matches = self._add_match_source_for_matched_matches(self.customer_audit_matches)
+        customer_audit_matches = self._add_match_source(self.customer_audit_matches)
+        customer_audit_matches.select("model_used", "match_source").show()
         customer_audit_matches = self._generate_additional_columns(customer_audit_matches)
+        customer_audit_matches.show()
         customer_audit_matches = self._add_segment_to_customer_audit_matches_based_on_company_code(customer_audit_matches)
+        customer_audit_matches.select("company_code", "segment").show()
         
-        match_df = self._fetch_matched_matches(customer_audit_matches)
-        not_match_df = self._fetch_not_matched_matches(customer_audit_matches)
-        match_df = match_df.join(not_match_df.select(MATCH_WAREHOUSE.PAIR_ID.NAME), "pair_id", "left_anti")
+        active_match_df = self._fetch_active_matches(customer_audit_matches)
+        print("active_match_df")
+        active_match_df.show()
+        deleted_match_df = self._fetch_deleted_matches(customer_audit_matches)
+        print("deleted_match_df")
+        deleted_match_df.show()
+        active_match_df = active_match_df.join(deleted_match_df.select(MATCH_WAREHOUSE.PAIR_ID.NAME), "pair_id", "left_anti")
         
-        match_df = self._add_bungee_audit_status_for_matched_matches(match_df)
-        not_match_df = self._add_bungee_audit_status_for_not_matched_matches(not_match_df)
+        active_match_df = self._add_bungee_audit_status_for_active_matches(active_match_df)
+        print("active_match_df")
+        active_match_df.show()
+        deleted_match_df = self._add_bungee_audit_status_for_deleted_matches(deleted_match_df)
+        print("deleted_match_df")
+        deleted_match_df.show()
         
-        customer_audit_matches = match_df.union(not_match_df)
+        customer_audit_matches = active_match_df.union(deleted_match_df)
         customer_audit_matches.show()
         customer_audit_matches = customer_audit_matches.select(get_column_list(MATCH_WAREHOUSE) + ["priority"])
+        customer_audit_matches.show()
         return customer_audit_matches
     

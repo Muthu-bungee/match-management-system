@@ -29,7 +29,7 @@ class Synchronizer:
         bungee_audit_matches.show()
         customer_audit_matches = CustomerAuditMatchProcessor(self.args, self.customer_audit_matches).process()
         customer_audit_matches.show()
-        self.merged_matches = MatchMerger(self.args, bungee_audit_matches, customer_audit_matches, self.mdw).merge_matches()
+        self.merged_matches = MatchMerger(self.env, self.args, bungee_audit_matches, customer_audit_matches, self.mdw).merge_matches()
     
     def _loading(self):
         DataLoader(self.args).save_date_to_db(self.merged_matches)
@@ -37,7 +37,7 @@ class Synchronizer:
     def sync(self):
         self._extraction()
         self._transformation()
-        self._loading()
+        # self._loading()
         
                  
 

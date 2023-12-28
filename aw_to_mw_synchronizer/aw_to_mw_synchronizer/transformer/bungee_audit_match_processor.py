@@ -71,15 +71,23 @@ class BungeeAuditMatchProcessor:
                                     .withColumn(MATCH_WAREHOUSE.UPDATED_DATE.NAME, lit(None)) \
                                     .withColumn(MATCH_WAREHOUSE.UPDATED_BY.NAME, lit(None)) \
                                     .withColumn("priority", lit(2))
+        bungee_audit_matches.show()
         bungee_audit_matches = bungee_audit_matches.select(get_column_list(MATCH_WAREHOUSE) + ["priority"])
+        bungee_audit_matches.show()
         return bungee_audit_matches
     
     def process(self ):
         bungee_successful_audit_matches = self._generate_product_info_columns(self.bungee_successful_audit_matches)
+        print("bungee_successful_audit_matches =", bungee_successful_audit_matches.count())
         bungee_unsuccessful_audit_matches = self._generate_product_info_columns(self.bungee_unsuccessful_audit_matches)
+        print("bungee_unsuccessful_audit_matches =", bungee_unsuccessful_audit_matches.count())
         bungee_successful_audit_matches = self._remove_unsuccessful_matches(bungee_successful_audit_matches, bungee_unsuccessful_audit_matches)
+        print("after removal of not matches from bungee_successful_audit_matches =", bungee_successful_audit_matches.count())
         bungee_successful_audit_matches = self._add_audit_status_for_successful_audit_matches(bungee_successful_audit_matches)
         bungee_unsuccessful_audit_matches = self._add_audit_status_for_unsuccessful_audit_matches(bungee_unsuccessful_audit_matches)
+        print("before combining  bungee_successful_audit_matches = ", bungee_successful_audit_matches.count())
+        print("before combining  bungee_unsuccessful_audit_matches = ", bungee_unsuccessful_audit_matches.count())
         bungee_audit_matches = combine_dfs( [bungee_successful_audit_matches, bungee_unsuccessful_audit_matches] )
+        print("after combining  bungee_audit_matches = ", bungee_audit_matches.count())
         bungee_audit_matches = self._add_additional_columns(bungee_audit_matches)
         return bungee_audit_matches
