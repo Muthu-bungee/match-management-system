@@ -9,7 +9,7 @@ import bungee_utils.spark_utils.function.dataframe_util as utils
 # from awsglue.utils import getResolvedOptions
 from pyspark.context import SparkContext
 from match_generator.extractor.data_reader import DataFetcher
-from match_generator.transformer.pruner import Match_Pruner
+from mdp_common_utils.match_pruner.pruner import MatchPruner
 from match_generator.transformer.aggregator import Aggregator
 from match_generator.loader.data_loader import DataLoader
 from pyspark.sql import DataFrame, SparkSession
@@ -53,7 +53,7 @@ class MatchGenerator:
             customer_matches = directed_matches.filter(col("base_source_store") == customer)
             if self.env != "prod":
                 customer_matches.show(truncate=False, n = 100)
-            pruner = Match_Pruner(mw, customer_matches, config, self.env)
+            pruner = MatchPruner(mw, customer_matches, config, self.env)
             updated_customer_matches = pruner.prune_matches()
             self.customer_match_list.append(updated_customer_matches)
         

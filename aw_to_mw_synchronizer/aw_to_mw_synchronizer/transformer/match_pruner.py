@@ -52,7 +52,7 @@ class MatchPruner:
             
         elif self.config['match_type'] == 'exact_over_similar':
             exact_and_similar_match = exact_matches.union(similar_matches)
-            pruned_suggestion = self._prune_for_exact_over_similar_match(exact_and_similar_match, unaudited_match)
+            pruned_suggestion = self._prune_for_exact_over_similar_match(exact_matches, unaudited_match)
             
         if pruned_suggestion is not None:
             pruned_suggestion = pruned_suggestion.withColumn("bungee_audit_status", lit("PRUNED"))
@@ -125,27 +125,37 @@ class MatchPruner:
                 pruned_suggestion = None 
                 return pruned_suggestion
 
-    def _prune_for_exact_over_similar_match(self, exact_and_similar_match: DataFrame, audited_base_product_unaudited_matches:DataFrame):
+    def _prune_for_exact_over_similar_match(self, exact_matches: DataFrame, unaudited_matches:DataFrame):
         if self.client_config["seller_type"] == "1p":
             if self.client_config["cardinality"] == "1":
-                return
+                pruned_suggestion = unaudited_matches.join( exact_matches.filter( col(AUDITED_MATCH_SELLER_TYPE) == '1p'), self.join_columns, "inner" )
+                return pruned_suggestion 
             elif self.client_config["cardinality"] == "n":
-                return
+                pruned_suggestion = None
+                return pruned_suggestion 
         elif self.client_config["seller_type"] == "3p":
             if self.client_config["cardinality"] == "1":
-                return
+                pruned_suggestion = unaudited_matches.join( exact_matches.filter( col(AUDITED_MATCH_SELLER_TYPE) == '3p'), self.join_columns, "inner" )
+                return pruned_suggestion 
             elif self.client_config["cardinality"] == "n":
-                return
+                pruned_suggestion = None
+                return pruned_suggestion
         elif self.client_config["seller_type"] == "1p_or_3p":
             if self.client_config["cardinality"] == "1":
-                return
+                pruned_suggestion = unaudited_matches.join( exact_matches, self.join_columns, "inner" ) 
+                return pruned_suggestion
             elif self.client_config["cardinality"] == "n":
-                return
+                pruned_suggestion = unaudited_matches.join( exact_matches.filter( col(AUDITED_MATCH_SELLER_TYPE) == '1p'), self.join_columns, "inner" )
+                return pruned_suggestion
         elif self.client_config["seller_type"] == "1p_over_3p":
             if self.client_config["cardinality"] == "1":
-                return
+                pruned_suggestion = unaudited_matches.join( exact_matches, self.join_columns, "inner" )
+                pruned_suggestion = pruned_suggestion.filter( (col(MATCH_WAREHOUSE.SELLER_TYPE.NAME) == col(AUDITED_MATCH_SELLER_TYPE)) | ( (col(AUDITED_MATCH_SELLER_TYPE)=='1p') & (col(MATCH_WAREHOUSE.SELLER_TYPE.NAME)=='3p')  ) ) 
+                return pruned_suggestion
             elif self.client_config["cardinality"] == "n":
-                return 
+                pruned_suggestion = unaudited_matches.join( exact_matches.filter( col(AUDITED_MATCH_SELLER_TYPE) == '1p'), self.join_columns, "inner" )
+                return pruned_suggestion
+            
 
    
    

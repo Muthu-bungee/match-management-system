@@ -39,3 +39,19 @@ class BUNGEE_AUDIT_STATUS :
     UNSURE = 'UNSURE'
     UNAUDITED = 'UNAUDITED'
     CONFLICT = 'CONFLICT'
+
+class CUSTOMER_SELLER_TYPE_CONFIG:
+    _1P = "_1p"
+    _3P = "_3p"
+    _1P_OR_3P = "_1p_or_3p"
+    _1P_OVER_3P = "_1p_over_3p"
+
+class CUSTOMER_CARDINALITY_CONFIG:
+    _1 = "1"
+    _N = "n"
+
+class CUSTOMER_MATCH_TYPE_CONFIG:
+    EXACT_MATCH = "exact_match"
+    SIMILAR_MATCH = "similar_match"
+    EXACT_OR_SIMILAR_MATCH = "exact_or_similar_match"
+    EXACT_OVER_SIMILAR_MATCH = "exact_over_similar_match" 
