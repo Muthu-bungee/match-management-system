@@ -14,29 +14,40 @@ class Synchronizer:
         self.env = env
         self.spark = spark
         self.glue_context = glue_context
+        self.reader = DataFetcher(self.args, self.spark, self.env, self.glue_context)
     
-    def _extraction(self):
-        print("data fetching started")
-        reader = DataFetcher(self.args, self.spark, self.env, self.glue_context)
-        self.successful_bungee_audit_matches = reader.fetch_successful_bungee_audit_library()
-        self.unsuccessful_bungee_audit_matches = reader.fetch_unsuccessful_bungee_audit_library()
-        self.customer_audit_matches = reader.fetch_customer_audit_library()
-        self.mdw = reader.fetch_mdw()
-        print("Data fetching finished")
+    def _fetch_audited_match_for_merging(self):
+        print("Fetching audited match")
+        self.successful_bungee_audit_matches = self.reader.fetch_successful_bungee_audit_library()
+        self.unsuccessful_bungee_audit_matches = self.reader.fetch_unsuccessful_bungee_audit_library()
+        self.customer_audit_matches = self.reader.fetch_customer_audit_library()
+        self.mdw = self.reader.fetch_audited_matches_from_mw()
+        print("audited match fetched")
 
-    def _transformation(self):
+    def _merge_matches(self):
+        print("fetching audited match")
         bungee_audit_matches = BungeeAuditMatchProcessor(self.args, self.successful_bungee_audit_matches, self.unsuccessful_bungee_audit_matches).process()
         bungee_audit_matches.show()
         customer_audit_matches = CustomerAuditMatchProcessor(self.args, self.customer_audit_matches).process()
         customer_audit_matches.show()
         self.merged_matches = MatchMerger(self.env, self.args, bungee_audit_matches, customer_audit_matches, self.mdw).merge_matches()
+        
+    def _fetch_unaudited_matches_for_pruning(self):
+        self.unaudited_non_pruned_matches = self.reader.fetch_unaudited_matches_from_mw_based_on_source_store()
+        print("Data fetching finished")
+        
+    def _prune_matches():
+        pass 
     
-    def _loading(self):
+    def _save_data_to_mw(self):
         DataLoader(self.args).save_date_to_db(self.merged_matches)
         
     def sync(self):
-        self._extraction()
-        self._transformation()
+        self._fetch_audited_match_for_merging()
+        self._merge_matches()
+        self._fetch_unaudited_matches_for_pruning()
+        self._prune_matches()
+        self._save_data_to_mw()
         # self._loading()
         
                  

@@ -60,20 +60,32 @@ class MatchMerger:
                                              collect_set(col(MATCH_WAREHOUSE.BUNGEE_AUDIT_STATUS.NAME)).over(window_spec).alias("audit_status_list"), \
                                              row_number().over(window_spec).alias("row_num") )
         
+        #  checking for multiple bungee audit status
         merged_audited_matches = merged_audited_matches.filter(col("row_num") == 1).drop("row_num")
         merged_audited_matches = self._convert_to_direct_pair_matches(merged_audited_matches)
         merged_audited_matches = merged_audited_matches.withColumn( MATCH_WAREHOUSE.BUNGEE_AUDIT_STATUS.NAME, \
                                                                         when( size(col("audit_status_list")) > 1, lit(BUNGEE_AUDIT_STATUS.CONFLICT)) \
-                                                                        .otherwise( col("audit_status_list").getItem(0) ) )
-        conflict_condition = ( ( col(MATCH_WAREHOUSE.BUNGEE_AUDIT_STATUS.NAME).isNotNull() & col(MATCH_WAREHOUSE.CLIENT_AUDIT_STATUS_L1.NAME).isNotNull() & (col(MATCH_WAREHOUSE.BUNGEE_AUDIT_STATUS.NAME) != col(MATCH_WAREHOUSE.CLIENT_AUDIT_STATUS_L1.NAME)) ) | 
-                              ( col(MATCH_WAREHOUSE.BUNGEE_AUDIT_STATUS.NAME).isNotNull() & col(MATCH_WAREHOUSE.CLIENT_AUDIT_STATUS_L2.NAME).isNotNull() & (col(MATCH_WAREHOUSE.BUNGEE_AUDIT_STATUS.NAME) != col(MATCH_WAREHOUSE.CLIENT_AUDIT_STATUS_L2.NAME)) ) |
-                              ( col(MATCH_WAREHOUSE.CLIENT_AUDIT_STATUS_L1.NAME).isNotNull() & col(MATCH_WAREHOUSE.CLIENT_AUDIT_STATUS_L2.NAME).isNotNull() & (col(MATCH_WAREHOUSE.CLIENT_AUDIT_STATUS_L1.NAME) != col(MATCH_WAREHOUSE.CLIENT_AUDIT_STATUS_L2.NAME)) ) )
+                                                                        .otherwise( col("audit_status_list").getItem(0) ) )\
+                                                                        .drop("audit_status_list")
+        
+        #  checking for multiple audit status eg bungee and customer
+        merged_audited_matches = merged_audited_matches.withColumn( "audit_status_list", array_distinct(array(MATCH_WAREHOUSE.BUNGEE_AUDIT_STATUS.NAME, MATCH_WAREHOUSE.CLIENT_AUDIT_STATUS_L1.NAME, MATCH_WAREHOUSE.CLIENT_AUDIT_STATUS_L2.NAME)) )
+        merged_audited_matches = merged_audited_matches.withColumn( "audit_status_list", expr("FILTER(audit_status_list, value -> value IS NOT NULL)"))
+        merged_audited_matches = merged_audited_matches.withColumn( "audit_status_list_length", size(col("audit_status_list")) )
         
         merged_audited_matches = merged_audited_matches.withColumn( MATCH_WAREHOUSE.BUNGEE_AUDIT_STATUS.NAME, \
-                                                                        when( conflict_condition, lit(BUNGEE_AUDIT_STATUS.CONFLICT)) \
-                                                                        .otherwise( col(MATCH_WAREHOUSE.BUNGEE_AUDIT_STATUS.NAME) ) )
+                                                                        when( col("audit_status_list_length") > 1, lit(BUNGEE_AUDIT_STATUS.CONFLICT)) \
+                                                                        .otherwise( col(MATCH_WAREHOUSE.BUNGEE_AUDIT_STATUS.NAME) ) )\
+                                                                        .drop("audit_status_list", "audit_status_list_length")
+        # ask senthil if this can be considered as conflict
+        # conflict_condition = ( ( col(MATCH_WAREHOUSE.BUNGEE_AUDIT_STATUS.NAME).isNotNull() & col(MATCH_WAREHOUSE.CLIENT_AUDIT_STATUS_L1.NAME).isNotNull() & (col(MATCH_WAREHOUSE.BUNGEE_AUDIT_STATUS.NAME) != col(MATCH_WAREHOUSE.CLIENT_AUDIT_STATUS_L1.NAME)) ) | 
+        #                       ( col(MATCH_WAREHOUSE.BUNGEE_AUDIT_STATUS.NAME).isNotNull() & col(MATCH_WAREHOUSE.CLIENT_AUDIT_STATUS_L2.NAME).isNotNull() & (col(MATCH_WAREHOUSE.BUNGEE_AUDIT_STATUS.NAME) != col(MATCH_WAREHOUSE.CLIENT_AUDIT_STATUS_L2.NAME)) ) |
+        #                       ( col(MATCH_WAREHOUSE.CLIENT_AUDIT_STATUS_L1.NAME).isNotNull() & col(MATCH_WAREHOUSE.CLIENT_AUDIT_STATUS_L2.NAME).isNotNull() & (col(MATCH_WAREHOUSE.CLIENT_AUDIT_STATUS_L1.NAME) != col(MATCH_WAREHOUSE.CLIENT_AUDIT_STATUS_L2.NAME)) ) )
+        
+        # merged_audited_matches = merged_audited_matches.withColumn( MATCH_WAREHOUSE.BUNGEE_AUDIT_STATUS.NAME, \
+        #                                                                 when( conflict_condition, lit(BUNGEE_AUDIT_STATUS.CONFLICT)) \
+        #                                                                 .otherwise( col(MATCH_WAREHOUSE.BUNGEE_AUDIT_STATUS.NAME) ) )
         updated_merged_audited_matches = self._remove_non_updated_matches(self.match_warehouse, merged_audited_matches)
         
         return updated_merged_audited_matches
     
-   

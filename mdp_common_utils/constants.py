@@ -10,7 +10,7 @@ class SEGMENT :
     OFFICE_SUPPLIES = 'office_supplies'
     GROCERY = 'grocery'
     SPORTS_OUTDOORS = 'sports_outdoors'
-    UNSEGMENTED = 'rejected'
+    UNSEGMENTED = 'unknown'
 
 # Match type
 EXACT_MATCH = 'exact_match'
@@ -31,6 +31,7 @@ class MATCH_SOURCE :
     FASTLANE_CUSTOMER_REJECTED = "fastlane_customer_scrape_rejected"
 
 class BUNGEE_AUDIT_STATUS :
+    PRUNED = 'PRUNED'
     INACTIVE = 'INACTIVE'
     EXACT_MATCH = 'EXACT_MATCH'
     SIMILAR_MATCH = 'SIMILAR_MATCH'

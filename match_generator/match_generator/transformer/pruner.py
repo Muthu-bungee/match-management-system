@@ -73,7 +73,7 @@ class Match_Pruner:
 
         elif self.config['match_type'] == 'similar' or self.config['match_type'] == 'exact_or_similar':
             exact_and_similar_match = exact_matches.union(similar_matches)
-            pruned_suggestion, match_suggestion = self.prune_for_exact_similar_match(audited_base_product_unaudited_matches, exact_and_similar_match)
+            pruned_suggestion, match_suggestion = self.prune_for_exact_similar_match(exact_and_similar_match, audited_base_product_unaudited_matches)
             
         if pruned_suggestion is not None:
             pruned_suggestion = pruned_suggestion.withColumn("bungee_audit_status", lit("PRUNED"))
@@ -83,10 +83,10 @@ class Match_Pruner:
             
         return pruned_suggestion, match_suggestion
 
-    def prune_for_exact_similar_match(self, audited_base_product_unaudited_matches: DataFrame, exact_and_similar_match: DataFrame):
+    def prune_for_exact_similar_match(self, exact_and_similar_match: DataFrame, unaudited_matches: DataFrame, ):
         print("Pruning Exact Sim Matches")
         if self.config['seller_type'] == '1p':
-            audited_base_product_unaudited_matches = audited_base_product_unaudited_matches.join(exact_and_similar_match.filter(col("audited_match_seller_type") == '1p'), ["base_sku_uuid", "comp_source_store"], "left")
+            audited_base_product_unaudited_matches = unaudited_matches.join(exact_and_similar_match.filter(col("audited_match_seller_type") == '1p'), ["base_sku_uuid", "comp_source_store"], "left")
             audited_base_product_unaudited_matches.show(truncate =False)
             if self.config['cardinality'] == '1':
                 pruned_suggestion = audited_base_product_unaudited_matches.filter( col("audited_match_seller_type_list").isNotNull() | (col("seller_type") == '3p')).\
@@ -98,7 +98,7 @@ class Match_Pruner:
                 match_suggestion = audited_base_product_unaudited_matches.filter( (col("seller_type") == '1p'))
                 
         elif self.config['seller_type'] == '3p':
-            audited_base_product_unaudited_matches = audited_base_product_unaudited_matches.join(exact_and_similar_match.filter(col("audited_match_seller_type") == '3p'), ["base_sku_uuid", "comp_source_store"], "left")
+            audited_base_product_unaudited_matches = unaudited_matches.join(exact_and_similar_match.filter(col("audited_match_seller_type") == '3p'), ["base_sku_uuid", "comp_source_store"], "left")
             if self.config['cardinality'] == '1':
                 pruned_suggestion = audited_base_product_unaudited_matches.filter( col("audited_match_seller_type_list").isNotNull() | (col("seller_type") == '1p')).\
                                     withColumn("misc_info", when( col("seller_type") == '1p', lit("seller_type_config_1p")).otherwise(col("misc_info")) )
@@ -111,7 +111,7 @@ class Match_Pruner:
         elif self.config['seller_type'] == '1p_or_3p':
             exact_and_similar_match = exact_and_similar_match.withColumn("audited_match_seller_type_list", when( col("audited_match_seller_type_list") == "1p_3p", "1p").otherwise(col("audited_match_seller_type_list")) ).\
                                             filter( col("audited_match_seller_type_list") == col("audited_match_seller_type"))
-            audited_base_product_unaudited_matches = audited_base_product_unaudited_matches.join(exact_and_similar_match, ["base_sku_uuid", "comp_source_store"], "left")
+            audited_base_product_unaudited_matches = unaudited_matches.join(exact_and_similar_match, ["base_sku_uuid", "comp_source_store"], "left")
             if self.config['cardinality'] == '1':
                 pruned_suggestion = audited_base_product_unaudited_matches.filter(col("audited_match_seller_type_list").isNotNull() )
                 match_suggestion = audited_base_product_unaudited_matches.filter(col("audited_match_seller_type_list").isNull() )
@@ -122,7 +122,7 @@ class Match_Pruner:
         elif self.config['seller_type'] == '1p_over_3p':
             exact_and_similar_match = exact_and_similar_match.withColumn("audited_match_seller_type_list", when( col("audited_match_seller_type_list") == "1p_3p", "1p").otherwise(col("audited_match_seller_type_list")) ).\
                                             filter( col("audited_match_seller_type_list") == col("audited_match_seller_type"))
-            audited_base_product_unaudited_matches = audited_base_product_unaudited_matches.join(exact_and_similar_match, ["base_sku_uuid", "comp_source_store"], "left")
+            audited_base_product_unaudited_matches = unaudited_matches.join(exact_and_similar_match, ["base_sku_uuid", "comp_source_store"], "left")
             audited_base_product_unaudited_matches.printSchema()
             if self.config['cardinality'] == '1':
                 pruned_suggestion = audited_base_product_unaudited_matches.filter( ~(col("audited_match_seller_type_list").isNull() | ((col("audited_match_seller_type_list") == "3p") & ( col('seller_type') == '1p' )) ) )
@@ -133,16 +133,16 @@ class Match_Pruner:
                 
         return pruned_suggestion,match_suggestion
 
-    def prune_for_exact_match_config(self, exact_matches: DataFrame, audited_base_product_unaudited_matches: DataFrame):
+    def prune_for_exact_match_config(self, exact_matches: DataFrame, unaudited_match: DataFrame):
         print("Pruning Exact Matches")
         if self.config['seller_type'] == '1p':
-            audited_base_product_unaudited_matches = audited_base_product_unaudited_matches.join(exact_matches.filter(col("audited_match_seller_type") == '1p'), ["base_sku_uuid", "comp_source_store"], "left")
+            audited_base_product_unaudited_matches = unaudited_match.join(exact_matches.filter(col("audited_match_seller_type") == '1p'), ["base_sku_uuid", "comp_source_store"], "left")
             pruned_suggestion = audited_base_product_unaudited_matches.filter( col("audited_match_seller_type_list").isNotNull() | (col("seller_type") == '3p')).\
                                     withColumn("misc_info", when( col("seller_type") == '3p', lit("seller_type_config_1p")).otherwise(col("misc_info")) )
             match_suggestion = audited_base_product_unaudited_matches.filter( col("misc_info").isNull() & (col("seller_type") == '1p') )
             
         elif self.config['seller_type'] == '3p':
-            audited_base_product_unaudited_matches = audited_base_product_unaudited_matches.join(exact_matches.filter(col("audited_match_seller_type") == '3p'), ["base_sku_uuid", "comp_source_store"], "left")
+            audited_base_product_unaudited_matches = unaudited_match.join(exact_matches.filter(col("audited_match_seller_type") == '3p'), ["base_sku_uuid", "comp_source_store"], "left")
             if self.config['cardinality'] == '1':
                 pruned_suggestion = audited_base_product_unaudited_matches.filter(col("audited_match_seller_type_list").isNotNull() | (col("seller_type") == '1p')).\
                                     withColumn("misc_info", when( col("seller_type") == '1p', lit("seller_type_config_3p")).otherwise(col("misc_info")) )
@@ -154,7 +154,7 @@ class Match_Pruner:
         elif self.config['seller_type'] == '1p_or_3p':
             exact_matches = exact_matches.withColumn("audited_match_seller_type_list", when( col("audited_match_seller_type_list") == "1p_3p", "1p").otherwise(col("audited_match_seller_type_list")) ).\
                                             filter( col("audited_match_seller_type_list") == col("audited_match_seller_type"))
-            audited_base_product_unaudited_matches = audited_base_product_unaudited_matches.join(exact_matches, ["base_sku_uuid", "comp_source_store"], "left")
+            audited_base_product_unaudited_matches = unaudited_match.join(exact_matches, ["base_sku_uuid", "comp_source_store"], "left")
             if self.config['cardinality'] == '1':
                 pruned_suggestion = audited_base_product_unaudited_matches.filter(col("audited_match_seller_type_list").isNotNull() )
                 match_suggestion = audited_base_product_unaudited_matches.filter(col("audited_match_seller_type_list").isNull() )
@@ -165,7 +165,7 @@ class Match_Pruner:
         elif self.config['seller_type'] == '1p_over_3p':
             exact_matches = exact_matches.withColumn("audited_match_seller_type_list", when( col("audited_match_seller_type_list") == "1p_3p", "1p").otherwise(col("audited_match_seller_type_list")) ).\
                                             filter( col("audited_match_seller_type_list") == col("audited_match_seller_type"))
-            audited_base_product_unaudited_matches = audited_base_product_unaudited_matches.join(exact_matches, ["base_sku_uuid", "comp_source_store"], "left")
+            audited_base_product_unaudited_matches = unaudited_match.join(exact_matches, ["base_sku_uuid", "comp_source_store"], "left")
             if self.config['cardinality'] == '1':
                 pruned_suggestion = audited_base_product_unaudited_matches.filter( ~(col("audited_match_seller_type_list").isNull() | ((col("audited_match_seller_type_list") == "3p") & ( col('seller_type') == '1p' )) ) )
                 match_suggestion = audited_base_product_unaudited_matches.filter( col("audited_match_seller_type_list").isNull() | ( (col("audited_match_seller_type_list") == "3p") & (col('seller_type') == '1p') )  )
