@@ -2,11 +2,6 @@ import sys
 import pkg_resources
 import configparser
 import bungee_utils.spark_utils.function.dataframe_util as utils
-
-# from awsglue.context import GlueContext
-# from awsglue.dynamicframe import DynamicFrame
-# from awsglue.job import Job
-# from awsglue.utils import getResolvedOptions
 from pyspark.context import SparkContext
 from match_generator.extractor.data_reader import DataFetcher
 from mdp_common_utils.match_pruner.pruner import MatchPruner
@@ -17,10 +12,6 @@ from pyspark.sql.functions import *
 
 class MatchGenerator:
     def __init__(self, spark: SparkSession, args: dict, env: str) -> None:
-        # resource_stream=pkg_resources.resource_string('match_generator','mdp-config.ini')
-        # self.mdp_config=configparser.ConfigParser()
-        # self.mdp_config.read_string(resource_stream.decode("utf-8"))
-        # print('match generator initiation done')
         self.args = self.fetch_arguments(args)
         self.client_config = self.fetch_client_config()
         self.env = env
